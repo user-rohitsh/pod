@@ -1,10 +1,10 @@
 #include <chrono>
-#include <thread>
 #include <condition_variable>
 #include <iostream>
 #include <mutex>
 #include <sstream>
 #include <stdlib.h>
+#include <thread>
 
 using namespace std;
 
@@ -54,7 +54,7 @@ mutex mtx;
 string outs[4];
 
 void reader(int id) {
-    outs[id] = outs[id] +  " Reader " + to_string(id)  + " str=" + str +"\n";
+  outs[id] = outs[id] + " Reader " + to_string(id) + " str=" + str + "\n";
 }
 
 void catenate(int id, const string &s) {
@@ -66,7 +66,7 @@ void catenate(int id, const string &s) {
   lk.w_unlock();
 }
 
-int main(int argc, char *argv[]) { 
+int main(int argc, char *argv[]) {
   int no_readers = 4;
   int no_writers = 3;
 

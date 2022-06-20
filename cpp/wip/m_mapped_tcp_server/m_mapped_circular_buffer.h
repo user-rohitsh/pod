@@ -14,25 +14,35 @@ inline void handle_error(std::string error) {
 }
 
 class m_mapped_circular_buffer {
+public:
+  enum ENDIAN { BIG, SMALL };
+  static const uint MAX_CAPACITY = 1024;
+
 private:
-  uint front;
-  uint tail;
-  uint size;
   std::string file_name;
-  unsigned char *start_addr;
+  unsigned char *start_addr = 0;
+  ENDIAN endian;
 
 public:
-  m_mapped_circular_buffer(uint size, std::string file_name)
-      : front(0), tail(0), size(size), file_name(std::move(file_name)),
-        start_addr(0) {
+  m_mapped_circular_buffer(std::string file_name)
+      : file_name(std::move(file_name)), start_addr(0) {
+
+    uint i = 1;
+
+    if (*((char *)&i) == 1)
+      endian = SMALL;
+    else
+      endian = BIG;
+
     map_file();
   }
 
-  void map_file() ;
+  void map_file();
 
   uint write(unsigned char *buffer, uint len);
+  void write(uint offset, unsigned char *buffer, uint len);
 
-  void readUint(uint &i, uint offset);
+  void readUint(uint offset, uint &i);
 
-  void writeUint(uint i, uint offset);
+  void writeUint(uint offset, const uint i);
 };

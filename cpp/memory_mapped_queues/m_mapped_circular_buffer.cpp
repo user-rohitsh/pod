@@ -1,9 +1,14 @@
 #include "m_mapped_circular_buffer.h"
+#include <asm-generic/errno-base.h>
+#include <chrono>
 #include <cstdio>
+#include <fcntl.h>
+#include <ratio>
 #include <sys/mman.h>
+#include <thread>
 
 void m_mapped_circular_buffer::map_file() {
-  int fd = open(file_name.c_str(), O_RDWR | O_CREAT, S_IRWXU);
+  fd = open(file_name.c_str(), O_RDWR | O_CREAT, S_IRWXU);
   if (fd == -1)
     handle_error("open");
 
@@ -17,7 +22,11 @@ void m_mapped_circular_buffer::map_file() {
   if (start_addr == MAP_FAILED)
     handle_error("mmap");
 
-  close(fd);
+  ret = lseek(fd, SIZE_OFFSET, SEEK_SET);
+  if (ret == -1)
+    handle_error("error seeling in file");
+
+  // close(fd);
 }
 
 uint m_mapped_circular_buffer::write(byte_ptr buffer, uint len) {
@@ -26,7 +35,10 @@ uint m_mapped_circular_buffer::write(byte_ptr buffer, uint len) {
   uint size = 0;
 
   read(FRONT_OFFSET, (byte_ptr)&front, SIZE_UINT);
+
+  lock();
   read(SIZE_OFFSET, (byte_ptr)&size, SIZE_UINT);
+  unlock();
 
   if (size + len > MAX_CAPACITY)
     return 0;
@@ -45,7 +57,10 @@ uint m_mapped_circular_buffer::read(byte_ptr buffer, uint len) {
   uint size = 0;
 
   read(TAIL_OFFSET, (byte_ptr)&tail, SIZE_UINT);
+
+  lock();
   read(SIZE_OFFSET, (byte_ptr)&size, SIZE_UINT);
+  unlock();
 
   if (size < len)
     return 0;
@@ -54,7 +69,10 @@ uint m_mapped_circular_buffer::read(byte_ptr buffer, uint len) {
   tail = (tail + len) % MAX_CAPACITY;
   size -= len;
   write(TAIL_OFFSET, (byte_ptr)&tail, SIZE_UINT);
+
+  lock();
   write(SIZE_OFFSET, (byte_ptr)&size, SIZE_UINT);
+  unlock();
 
   return len;
 }
@@ -66,3 +84,24 @@ void m_mapped_circular_buffer::write(uint offset, byte_ptr buffer, uint len) {
 void m_mapped_circular_buffer::read(uint offset, byte_ptr buffer, uint len) {
   memcpy(buffer, start_addr + offset, len);
 }
+
+int m_mapped_circular_buffer::lock() {
+  int ret = lockf(fd, F_TLOCK, SIZE_UINT);
+  int counter = 0;
+  while (ret == -1) {
+    counter++;
+    if (errno != EAGAIN && errno != EACCES) {
+      handle_error("error in locking");
+    }
+
+    if (counter == 1) {
+      std::this_thread::sleep_for(std::chrono::microseconds(100));
+      ret = lockf(fd, F_TLOCK, SIZE_UINT);
+    } else {
+      ret = lockf(fd, F_LOCK, SIZE_UINT);
+    }
+  }
+  return ret;
+}
+
+int m_mapped_circular_buffer::unlock() { return lockf(fd, F_ULOCK, SIZE_UINT); }

@@ -20,16 +20,19 @@ public:
   using byte_ptr = unsigned char *;
 
   static const uint SIZE_UINT = sizeof(uint);
-  static const uint FRONT_OFFSET = 0;
+  static const uint SIZE_OFFSET = 0;
   static const uint TAIL_OFFSET = SIZE_UINT;
-  static const uint SIZE_OFFSET = SIZE_UINT * 2;
+  static const uint FRONT_OFFSET = SIZE_UINT * 2;
   static const uint DATA_OFFSET = SIZE_UINT * 3;
 
 private:
   std::string file_name;
   byte_ptr start_addr = 0;
+  int fd;
   void write(uint offset, byte_ptr buffer, uint len);
   void read(uint offset, byte_ptr buffer, uint len);
+  int lock();
+  int unlock();
 
 public:
   m_mapped_circular_buffer(std::string file_name)

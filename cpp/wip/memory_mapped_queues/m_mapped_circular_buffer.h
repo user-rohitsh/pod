@@ -17,32 +17,29 @@ class m_mapped_circular_buffer {
 public:
   enum ENDIAN { BIG, SMALL };
   static const uint MAX_CAPACITY = 1024;
+  using byte_ptr = unsigned char *;
+
+  static const uint SIZE_UINT = sizeof(uint);
+  static const uint FRONT_OFFSET = 0;
+  static const uint TAIL_OFFSET = SIZE_UINT;
+  static const uint SIZE_OFFSET = SIZE_UINT * 2;
+  static const uint DATA_OFFSET = SIZE_UINT * 3;
 
 private:
   std::string file_name;
-  unsigned char *start_addr = 0;
-  ENDIAN endian;
+  byte_ptr start_addr = 0;
+  void write(uint offset, byte_ptr buffer, uint len);
+  void read(uint offset, byte_ptr buffer, uint len);
 
 public:
   m_mapped_circular_buffer(std::string file_name)
       : file_name(std::move(file_name)), start_addr(0) {
-
-    uint i = 1;
-
-    if (*((char *)&i) == 1)
-      endian = SMALL;
-    else
-      endian = BIG;
 
     map_file();
   }
 
   void map_file();
 
-  uint write(unsigned char *buffer, uint len);
-  void write(uint offset, unsigned char *buffer, uint len);
-
-  void readUint(uint offset, uint &i);
-
-  void writeUint(uint offset, const uint i);
+  uint write(byte_ptr buffer, uint len);
+  uint read(byte_ptr buffer, uint len);
 };

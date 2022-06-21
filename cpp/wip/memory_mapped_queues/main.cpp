@@ -5,7 +5,8 @@
 
 int main(int argc, char **argv) {
 
-  m_mapped_circular_buffer buffer("./queue");
+  m_mapped_circular_buffer buffer(
+      "/workspace/pod/cpp/wip/memory_mapped_queues/queue");
 
   std::cout << "pid=" << getpid() << std::endl;
 
@@ -14,8 +15,8 @@ int main(int argc, char **argv) {
 
   uint read = buffer.read((m_mapped_circular_buffer::byte_ptr)str, 6);
   std::cout << "read 1= " << read << std::endl;
-  buffer.write((unsigned char *)"abcdef", 6);
-  buffer.write((unsigned char *)"abcdef", 6);
+  //buffer.write((unsigned char *)"abcdef", 6);
+  //buffer.write((unsigned char *)"abcdef", 6);
 
   read = buffer.read((m_mapped_circular_buffer::byte_ptr)str, 6);
   std::cout << "read 2 = " << read << std::endl;

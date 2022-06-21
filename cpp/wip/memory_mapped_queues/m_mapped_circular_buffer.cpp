@@ -11,13 +11,9 @@ void m_mapped_circular_buffer::map_file() {
   if (ret == -1)
     handle_error("error truncating file");
 
-  ret = lseek(fd, 0, SEEK_SET);
-  if (ret == -1)
-    handle_error("error seeking to 0 in file");
-
   // long page_alligned_size = size & ~(sysconf(_SC_PAGE_SIZE) - 1);
   start_addr = (byte_ptr)mmap(NULL, MAX_CAPACITY, PROT_WRITE | PROT_READ,
-                              MAP_SHARED | MAP_POPULATE, fd, 0);
+                              MAP_SHARED, fd, 0);
   if (start_addr == MAP_FAILED)
     handle_error("mmap");
 
@@ -36,7 +32,7 @@ uint m_mapped_circular_buffer::write(byte_ptr buffer, uint len) {
     return 0;
 
   write(front + DATA_OFFSET, buffer, len);
-  front += len;
+  front = (front + len) % MAX_CAPACITY;
   size += len;
   write(FRONT_OFFSET, (byte_ptr)&front, SIZE_UINT);
   write(SIZE_OFFSET, (byte_ptr)&size, SIZE_UINT);
@@ -51,11 +47,11 @@ uint m_mapped_circular_buffer::read(byte_ptr buffer, uint len) {
   read(TAIL_OFFSET, (byte_ptr)&tail, SIZE_UINT);
   read(SIZE_OFFSET, (byte_ptr)&size, SIZE_UINT);
 
-  if (size <= 0)
+  if (size < len)
     return 0;
 
   read(tail + DATA_OFFSET, buffer, len);
-  tail -= len;
+  tail = (tail + len) % MAX_CAPACITY;
   size -= len;
   write(TAIL_OFFSET, (byte_ptr)&tail, SIZE_UINT);
   write(SIZE_OFFSET, (byte_ptr)&size, SIZE_UINT);

@@ -47,7 +47,10 @@ uint m_mapped_circular_buffer::write(byte_ptr buffer, uint len) {
   front = (front + len) % MAX_CAPACITY;
   size += len;
   write(FRONT_OFFSET, (byte_ptr)&front, SIZE_UINT);
+  
+  lock();
   write(SIZE_OFFSET, (byte_ptr)&size, SIZE_UINT);
+  unlock();
 
   return len;
 }
@@ -95,10 +98,10 @@ int m_mapped_circular_buffer::lock() {
     }
 
     if (counter == 1) {
-      std::this_thread::sleep_for(std::chrono::microseconds(100));
+      std::this_thread::sleep_for(std::chrono::microseconds(100)); // try one more time to get lock
       ret = lockf(fd, F_TLOCK, SIZE_UINT);
     } else {
-      ret = lockf(fd, F_LOCK, SIZE_UINT);
+      ret = lockf(fd, F_LOCK, SIZE_UINT); // blocking now - should happen very rarely
     }
   }
   return ret;

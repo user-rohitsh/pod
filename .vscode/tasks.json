@@ -1,0 +1,31 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build",
+            "type": "shell",
+            "command": "g++",
+            "args": [
+                "-g",
+                "-I/workspace/pod/cpp/${input:project}",
+                "-o/workspace/pod/cpp/${input:project}/${input:project}",
+                "-pthread",
+                "/workspace/pod/cpp/${input:project}/*.cpp"
+            ],
+            "group": "build",
+            "presentation": {
+                // Reveal the output only if unrecognized errors occur.
+                "reveal": "always"
+            }
+        }
+    ],
+    "inputs": [
+        {
+            "id": "project",
+            "type": "promptString",
+            "description": "project to compile"
+        }
+    ]
+}

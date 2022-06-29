@@ -3,18 +3,14 @@
 #include <iostream>
 #include <vector>
 
-template <int N, typename RESOLUTION = std::chrono::microseconds>
+template <int N, typename RESOLUTION = std::chrono::seconds>
 class rate_limiter {
 private:
-  using ulong = unsigned long;
   using clock = std::chrono::high_resolution_clock;
 
-  std::vector<long> buffer;
-  int head=0;
-  rate_limiter(const rate_limiter &) = delete;
-  rate_limiter(rate_limiter &&) = delete;
-  rate_limiter &operator=(const rate_limiter &) = delete;
-  rate_limiter &operator=(rate_limiter &&) = delete;
+  std::vector<typename RESOLUTION::rep> buffer;
+  RESOLUTION one_unit;
+  int head = 0;
 
 public:
   rate_limiter<N, RESOLUTION>() : buffer(N, 0) {}
@@ -22,7 +18,6 @@ public:
   bool checkForLimitBreach() {
     std::chrono::time_point<clock, RESOLUTION> now = clock::now();
 
-    if ( std::chrono::duration_cast <RESOLUTION> (now - buffer[head]) > 0)
-        
+    if ((now - buffer[head]) > one_unit)
   }
 };

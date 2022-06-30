@@ -3,21 +3,41 @@
 #include <iostream>
 #include <vector>
 
-template <int N, typename RESOLUTION = std::chrono::seconds>
-class rate_limiter {
-private:
-  using clock = std::chrono::high_resolution_clock;
+class limiter
+{
+public:
+  virtual bool checkForLimitBreach(int messageId) = 0;
+};
 
-  std::vector<typename RESOLUTION::rep> buffer;
-  RESOLUTION one_unit;
+template <int N, typename Duration = std::chrono::seconds>
+class rate_limiter : public limiter
+{
+private:
+  using Clock = std::chrono::high_resolution_clock;  
+  using ClockDuration = Clock::duration;
+
+  std::vector<ClockDuration> buffer;
+  Duration one_unit;
   int head = 0;
 
 public:
-  rate_limiter<N, RESOLUTION>() : buffer(N, 0) {}
+  rate_limiter<N, Duration>() : buffer(N, ClockDuration::zero()), one_unit(1) {}
 
-  bool checkForLimitBreach() {
-    std::chrono::time_point<clock, RESOLUTION> now = clock::now();
+  virtual bool checkForLimitBreach(int messageId)
+  {
+    ClockDuration now = Clock::now().time_since_epoch();
+    auto one = std::chrono::duration_cast<ClockDuration>(one_unit) ;
+    auto diff = now - buffer[head];
 
-    if ((now - buffer[head]) > one_unit)
+    if ((now - buffer[head]) <= std::chrono::duration_cast<ClockDuration>(one_unit) )
+    {
+      std::cout << "Rejected message " << messageId << " at " << now.count() << " Diff =" << (std::chrono::duration_cast<std::chrono::seconds>(diff)).count() << std::endl;
+      return true;
+    }
+
+    std::cout << "Accepted message " << messageId << " at " << now.count() << " Diff =" << (std::chrono::duration_cast<std::chrono::seconds>(diff)).count() << std::endl;
+    buffer[head] = now;
+    head = (head + 1) % N;
+    return false;
   }
 };

@@ -1,5 +1,4 @@
 #include "m_mapped_circular_buffer.h"
-#include <asm-generic/errno-base.h>
 #include <chrono>
 #include <cstdio>
 #include <fcntl.h>

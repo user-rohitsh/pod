@@ -32,3 +32,8 @@
 *.app
 
 *debug
+*build
+*.log
+**/.gradle/
+**/.idea/
+.DS_Store

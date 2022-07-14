@@ -1,15 +1,15 @@
 package microservice.ser_des;
 
-import sun.jvm.hotspot.runtime.Bytes;
+import java.nio.ByteBuffer;
 
-public class StringSerDes implements SerDes<String>{
+public class StringSerDes implements SerDes<String> {
     @Override
-    public Bytes[] toBytes(String message) {
-        return new Bytes[0];
+    public ByteBuffer toBytes(String message) {
+        return null;
     }
 
     @Override
-    public String fromBytes(Bytes[] bytes) {
+    public String fromBytes(ByteBuffer bytes) {
         return null;
     }
 }

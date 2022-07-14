@@ -1,8 +1,8 @@
 package microservice.ser_des;
 
-import sun.jvm.hotspot.runtime.Bytes;
+import java.nio.ByteBuffer;
 
 public interface SerDes<M> {
-    Bytes[] toBytes(M message);
-    M fromBytes(Bytes[] bytes);
+    ByteBuffer toBytes(M message);
+    M fromBytes(ByteBuffer bytes);
 }

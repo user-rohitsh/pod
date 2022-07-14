@@ -1,6 +1,5 @@
-import microservice.MemoryMappedQueue;
 import microservice.Microservice;
-import microservice.Persitence.MmapPersistence;
+import microservice.state_management.MemoryMappedLog;
 import microservice.ser_des.SerDes;
 import microservice.ser_des.StringSerDes;
 
@@ -11,9 +10,9 @@ public class Main {
     public static void main(String[] args)
     {
         SerDes<String> ser_des = new StringSerDes();
-        MemoryMappedQueue<String> inMemoryMappedQueue = new MemoryMappedQueue<String>(data_dir + "test_service_in");
-        MemoryMappedQueue<String> outMemoryMappedQueue = new MemoryMappedQueue<String>(data_dir + "test_service_out");
-        Microservice<String,String> microservice = new Microservice<>(inMemoryMappedQueue,outMemoryMappedQueue,new MmapPersistence());
+        MemoryMappedLog<String> inMemoryMappedQueue = new MemoryMappedLog<String>(data_dir + "test_service_in",ser_des);
+        MemoryMappedLog<String> outMemoryMappedQueue = new MemoryMappedLog<String>(data_dir + "test_service_out",ser_des);
+        Microservice<String,String> microservice = new Microservice<>(inMemoryMappedQueue,outMemoryMappedQueue);
         microservice.start(ser_des);
     }
 }

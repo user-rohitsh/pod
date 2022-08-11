@@ -37,3 +37,5 @@
 **/.gradle/
 **/.idea/
 .DS_Store
+**/target/
+

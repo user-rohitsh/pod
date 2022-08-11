@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.stereotype.Component;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.time.LocalDate;
@@ -59,7 +60,9 @@ public class TimeSeries {
     public TimeSeries(@Value("${ts_file_name}") String ts_file_name)
             throws FileNotFoundException {
 
-        List<Ts_Data> temp = new CsvToBeanBuilder(new FileReader(ts_file_name))
+        File file = new File(this.getClass().getClassLoader().getResource(ts_file_name).getFile());
+
+        List<Ts_Data> temp = new CsvToBeanBuilder(new FileReader(file))
                 .withType(Ts_Data.class)
                 .build()
                 .parse();

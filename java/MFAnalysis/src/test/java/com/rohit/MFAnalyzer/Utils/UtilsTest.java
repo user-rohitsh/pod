@@ -18,8 +18,8 @@ class UtilsTest {
 
     @Test
     void annualizedRate() {
-        Optional<BigDecimal> sol = Utils.annualizedRate(2666.73,24,100);
-        double val = sol.orElseGet(()->new BigDecimal(-10000.0)).doubleValue();
-        assertEquals(0.00833,val,0.01);
+        BigDecimal sol = Utils.rateFromAnnuity(2666.73,24,100);
+
+        assertEquals(0.00833,sol.doubleValue(),0.01);
     }
 }

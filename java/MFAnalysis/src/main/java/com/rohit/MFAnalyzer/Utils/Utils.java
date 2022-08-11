@@ -7,28 +7,27 @@ import java.util.Optional;
 
 public class Utils {
 
-    public static Pair<BigDecimal,BigDecimal> quadraticSolver(double a, double b, double c) {
+    static Pair<BigDecimal, BigDecimal> quadraticSolver(double a, double b, double c) {
 
         double D = b * b - 4 * a * c;
 
-        if ( D < 0.0) return null;
+        if (D < 0.0) return null;
 
-        BigDecimal root1 = new BigDecimal((-b + Math.sqrt(D))/(2*a));
-        BigDecimal root2 = new BigDecimal((-b - Math.sqrt(D))/(2*a));
+        BigDecimal root1 = new BigDecimal((-b + Math.sqrt(D)) / (2 * a));
+        BigDecimal root2 = new BigDecimal((-b - Math.sqrt(D)) / (2 * a));
 
-        return Pair.of(root1.max(root2),root1.min(root2));
+        return Pair.of(root1.max(root2), root1.min(root2));
     }
 
-    public static Optional<BigDecimal> annualizedRate(double fv, int t, double pmt)
-    {
-        double a = pmt * (t-2)*(t-1)*t/6.0;
-        double b = pmt * (t-1)*t/2.0;
-        double c = pmt * t - fv;
+    public static BigDecimal rateFromAnnuity(double fv_at_end_periods, int no_of_periods, double pmt_start_of_period) {
+        double a = pmt_start_of_period * (no_of_periods - 2) * (no_of_periods - 1) * no_of_periods / 6.0;
+        double b = pmt_start_of_period * (no_of_periods - 1) * no_of_periods / 2.0;
+        double c = pmt_start_of_period * no_of_periods - fv_at_end_periods;
 
-        Pair<BigDecimal,BigDecimal> solution = quadraticSolver(a,b,c);
+        Pair<BigDecimal, BigDecimal> solution = quadraticSolver(a, b, c);
 
-        if ( solution == null) return Optional.empty();
+        if (solution == null) return new BigDecimal(10000.0);
 
-        return Optional.of(solution.getLeft());
+        return solution.getLeft();
     }
 }

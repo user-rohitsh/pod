@@ -7,10 +7,10 @@ import com.rohit.MFAnalyzer.Utils.Utils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.PropertySource;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 
-import java.io.FileNotFoundException;
-import java.io.FileReader;
+import java.io.*;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -21,16 +21,17 @@ import java.util.stream.IntStream;
 @PropertySource("application.properties")
 public class TimeSeries {
 
-    private static final int NO_OF_MONTH_IN_YEAR=12;
-    private static final int NO_DAYS_IN_MONTH=30;
+    private static final int NO_OF_MONTH_IN_YEAR = 12;
+    private static final int NO_DAYS_IN_MONTH = 30;
 
     public static class Ts_Data {
         @CsvBindByName(column = "Date", locale = "en-US")
-        @CsvDate(value="dd-MMM-yy")
+        @CsvDate(value = "dd-MMM-yy")
         private Date date;
 
         @CsvBindByName(column = "Spot Price(Rs.)")
         private double nav;
+
         public double getNav() {
             return nav;
         }
@@ -57,9 +58,11 @@ public class TimeSeries {
 
     @Autowired
     public TimeSeries(@Value("${ts_file_name}") String ts_file_name)
-            throws FileNotFoundException {
+            throws IOException {
 
-        List<Ts_Data> temp = new CsvToBeanBuilder(new FileReader(ts_file_name))
+        InputStream stream = new ClassPathResource(ts_file_name, TimeSeries.class).getInputStream();
+
+        List<Ts_Data> temp = new CsvToBeanBuilder(new InputStreamReader(stream))
                 .withType(Ts_Data.class)
                 .build()
                 .parse();
@@ -72,14 +75,13 @@ public class TimeSeries {
                 .mapToDouble(Ts_Data::getNav)
                 .toArray();
 
-        monthly_navs = IntStream.range(0,ts_data1.length)
-                .filter(i -> i %NO_DAYS_IN_MONTH == 0)
+        monthly_navs = IntStream.range(0, ts_data1.length)
+                .filter(i -> i % NO_DAYS_IN_MONTH == 0)
                 .mapToDouble(i -> ts_data1[i])
                 .toArray();
     }
 
-    public TimeSeries(double[] data)
-    {
+    public TimeSeries(double[] data) {
         monthly_navs = data;
     }
 
@@ -89,7 +91,7 @@ public class TimeSeries {
         int endIndex = startDateIndex + no_of_months;
 
         double accumulated_units = IntStream.range(startDateIndex, endIndex)
-                .mapToDouble(i -> 100.0 / monthly_navs[i] )
+                .mapToDouble(i -> 100.0 / monthly_navs[i])
                 .sum();
 
         double fv_et_end = accumulated_units * monthly_navs[endIndex];
@@ -98,11 +100,11 @@ public class TimeSeries {
     }
 
     public double[] getSipArray(int startIndex, int durationInYears) {
-        int lastIndex = monthly_navs.length  - durationInYears * NO_OF_MONTH_IN_YEAR ;
+        int lastIndex = monthly_navs.length - durationInYears * NO_OF_MONTH_IN_YEAR;
 
-        return IntStream.range(startIndex,lastIndex)
-                .mapToDouble(i -> monthly_rate_of_return_of_sip(i,durationInYears))
-                .map( monthly_rate -> Math.round(10000 * monthly_rate )/100.0)
+        return IntStream.range(startIndex, lastIndex)
+                .mapToDouble(i -> monthly_rate_of_return_of_sip(i, durationInYears))
+                .map(monthly_rate -> Math.round(10000 * monthly_rate) / 100.0)
                 .toArray();
     }
 

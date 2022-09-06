@@ -1,111 +1,75 @@
 package com.rohit.MFAnalyzer.Data;
 
-import com.opencsv.bean.CsvBindByName;
-import com.opencsv.bean.CsvDate;
-import com.opencsv.bean.CsvToBeanBuilder;
 import com.rohit.MFAnalyzer.Utils.Utils;
+import io.vavr.Tuple;
+import io.vavr.control.Try;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.PropertySource;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 
-import java.io.*;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.io.IOException;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 
 @Component("GoldData")
 @PropertySource("application.properties")
-public class TimeSeries {
+public class MonlthlySipAnalyzer {
 
     private static final int NO_OF_MONTH_IN_YEAR = 12;
     private static final int NO_DAYS_IN_MONTH = 30;
 
-    public static class Ts_Data {
-        @CsvBindByName(column = "Date", locale = "en-US")
-        @CsvDate(value = "dd-MMM-yy")
-        private Date date;
-
-        @CsvBindByName(column = "Spot Price(Rs.)")
-        private double nav;
-
-        public double getNav() {
-            return nav;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            Ts_Data ts_data = (Ts_Data) o;
-            return date.equals(ts_data.date);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(date);
-        }
-
-        public static int compareTo(Ts_Data d1, Ts_Data d2) {
-            return d1.date.compareTo(d2.date);
-        }
-    }
-
-    private final double[] monthly_navs;
+    //private final EodPriceData[] eod_values;
+    ArrayList<EodPriceDataFactory.EodPriceData> eod_data = new ArrayList<>();
 
     @Autowired
-    public TimeSeries(@Value("${ts_file_name}") String ts_file_name)
+    public MonlthlySipAnalyzer(EodPriceDataFactory priceDataTemplate)
             throws IOException {
 
-        InputStream stream = new ClassPathResource(ts_file_name, TimeSeries.class).getInputStream();
+        try (Stream<Path> paths = Files.walk(FileSystems.getDefault().getPath("/tmp/gold.csv").toAbsolutePath())) {
+            eod_data.addAll(paths
+                    .map(Utils::getLines)
+                    .filter(Try::isSuccess)
+                    .flatMap(Try::get)
+                    .map(line -> priceDataTemplate.getEodPriceDataFromCsvLine(line))
+                    .sorted(EodPriceDataFactory.EodPriceData::compareTo)
+                    .collect(Collectors.toList()));
 
-        List<Ts_Data> temp = new CsvToBeanBuilder(new InputStreamReader(stream))
-                .withType(Ts_Data.class)
-                .build()
-                .parse();
+        }
 
-        Set<Ts_Data> test = new HashSet<>();
-        final double[] ts_data1 = temp
-                .stream()
-                .filter(test::add)
-                .sorted(Ts_Data::compareTo)
-                .mapToDouble(Ts_Data::getNav)
-                .toArray();
-
-        monthly_navs = IntStream.range(0, ts_data1.length)
-                .filter(i -> i % NO_DAYS_IN_MONTH == 0)
-                .mapToDouble(i -> ts_data1[i])
-                .toArray();
     }
-
-    public TimeSeries(double[] data) {
-        monthly_navs = data;
-    }
-
 
     public double monthly_rate_of_return_of_sip(int startDateIndex, int durationInYears) {
         int no_of_months = durationInYears * NO_OF_MONTH_IN_YEAR;
-        int endIndex = startDateIndex + no_of_months;
+        int endIndex = startDateIndex + no_of_months * NO_DAYS_IN_MONTH;
 
         double accumulated_units = IntStream.range(startDateIndex, endIndex)
-                .mapToDouble(i -> 100.0 / monthly_navs[i])
-                .sum();
+                .filter(i -> (i - startDateIndex) % NO_DAYS_IN_MONTH == 0)
+                .filter(i -> i < eod_data.size())
+                .mapToObj(i -> Tuple.of(i,100.0 / eod_data.get(i).getEod_price()));
 
-        double fv_et_end = accumulated_units * monthly_navs[endIndex];
+        double fv_et_end = accumulated_units * eod_data.get(endIndex).getEod_price();
 
         return Utils.rateFromAnnuity(fv_et_end, no_of_months, 100).doubleValue();
     }
 
-    public double[] getSipArray(int startIndex, int durationInYears) {
-        int lastIndex = monthly_navs.length - durationInYears * NO_OF_MONTH_IN_YEAR;
+    public String getSipArray(int startIndex, int durationInYears) {
+        int lastIndex = eod_data.size() - durationInYears * NO_OF_MONTH_IN_YEAR;
 
-        return IntStream.range(startIndex, lastIndex)
+        StringBuilder builder = new StringBuilder();
+        IntStream.range(startIndex, lastIndex)
                 .mapToDouble(i -> monthly_rate_of_return_of_sip(i, durationInYears))
-                .map(monthly_rate -> Math.round(10000 * monthly_rate) / 100.0)
-                .toArray();
+                .map(d -> Math.round(10000 * d) / 100.0)
+                .forEach(
+                        v -> builder.append(v).append("\n")
+                );
+
+        return builder.toString();
     }
 
 }

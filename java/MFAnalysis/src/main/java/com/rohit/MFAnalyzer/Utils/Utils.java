@@ -1,9 +1,15 @@
 package com.rohit.MFAnalyzer.Utils;
 
+import io.vavr.CheckedFunction0;
+import io.vavr.CheckedFunction1;
+import io.vavr.control.Try;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.math.BigDecimal;
-import java.util.Optional;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 public class Utils {
 
@@ -29,5 +35,15 @@ public class Utils {
         if (solution == null) return new BigDecimal(10000.0);
 
         return solution.getLeft();
+    }
+
+    public static Try<Stream<String>> getLines(Path path)
+    {
+        return Try.of(() -> Files.lines(path));
+    }
+
+    public static <T> Try<T> exceptionSafe( CheckedFunction0<T> c)
+    {
+            return Try.of(c);
     }
 }

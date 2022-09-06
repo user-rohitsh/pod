@@ -5,10 +5,13 @@ import io.vavr.CheckedFunction1;
 import io.vavr.control.Try;
 import org.apache.commons.lang3.tuple.Pair;
 
+import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 public class Utils {
@@ -37,13 +40,24 @@ public class Utils {
         return solution.getLeft();
     }
 
-    public static Try<Stream<String>> getLines(Path path)
-    {
-        return Try.of(() -> Files.lines(path));
+    public static Try<Stream<String>> getLines(String dir) {
+        Path p = FileSystems.getDefault().getPath(dir);
+        Try<Stream<Path>> checked_paths = CheckedFunction1.liftTry((Path fp) -> Files.walk(fp)).apply(p);
+
+        Function<Stream<Path>, Try<Stream<String>>> checkedConvertPathsToStreams = CheckedFunction1.liftTry((Stream<Path> paths) -> Utils.convertPathsToLines(paths));
+        return checked_paths.flatMap( paths -> checkedConvertPathsToStreams.apply(paths));
     }
 
-    public static <T> Try<T> exceptionSafe( CheckedFunction0<T> c)
+    public static Stream<String> convertPathsToLines(Stream<Path> paths)
     {
-            return Try.of(c);
+        return paths.filter(Files::isRegularFile).flatMap(path -> {
+            try {
+                return Files.lines(path).skip(1);
+            } catch (IOException e) {
+                throw new RuntimeException(e.getMessage());
+            }
+        });
     }
+
+
 }

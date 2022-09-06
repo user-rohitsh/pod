@@ -2,24 +2,15 @@ package com.rohit.MFAnalyzer.Data;
 
 import com.rohit.MFAnalyzer.MyProperties;
 import com.rohit.MFAnalyzer.Utils.Utils;
-import io.vavr.Tuple;
 import io.vavr.control.Try;
-import jdk.vm.ci.meta.Local;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.PropertySource;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
-import java.nio.file.FileSystems;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 
@@ -37,9 +28,10 @@ public class MonlthlySipAnalyzer {
         this.properties=properties;
         Try<Stream<String>> checked_csv_lines = Utils.getLines(properties.getData_dir());
         checked_csv_lines.forEach(
-                checkedLine ->
+                lines ->extractEodData(lines)
         );
-
+        eod_data.sort(EodPriceData::compareTo);
+        int a= 2;
     }
 
     public void extractEodData (Stream<String> lines)
@@ -48,14 +40,14 @@ public class MonlthlySipAnalyzer {
         DateTimeFormatter fmtr = DateTimeFormatter.ofPattern(format, Locale.US);
 
         lines.forEach(
-                line -> eod_data.add(extractEodData(line))
+                line -> eod_data.add(extractEodData(fmtr, line))
         );
     }
 
-    public EodPriceData extractEodData(String csv_line)
+    public EodPriceData extractEodData(DateTimeFormatter fmtr, String csv_line)
     {
         String[] fields = csv_line.split(",");
-        LocalDate date = LocalDate.parse(fields[properties.getDate_index()]);
+        LocalDate date = LocalDate.parse(fields[properties.getDate_index()],fmtr);
         Double price = Double.parseDouble(fields[properties.getEod_price_index()]);
         return new EodPriceData(date,price);
     }

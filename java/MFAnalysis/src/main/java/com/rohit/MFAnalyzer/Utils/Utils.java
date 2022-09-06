@@ -1,6 +1,5 @@
 package com.rohit.MFAnalyzer.Utils;
 
-import io.vavr.CheckedFunction0;
 import io.vavr.CheckedFunction1;
 import io.vavr.control.Try;
 import org.apache.commons.lang3.tuple.Pair;
@@ -10,7 +9,6 @@ import java.math.BigDecimal;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Stream;
 

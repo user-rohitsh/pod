@@ -1,24 +1,20 @@
 package com.rohit.MFAnalyzer;
 
-import com.rohit.MFAnalyzer.Data.TimeSeries;
+import com.rohit.MFAnalyzer.Data.MonlthlySipAnalyzer;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-
 public class Controller {
 
     @Autowired
-    @Qualifier("GoldData")
-    private TimeSeries timeSeries;
+    MonlthlySipAnalyzer analyzer;
 
-    @GetMapping("/sip_returns")
-    @ResponseBody double[] siptReturns(@RequestParam("years") int number_of_years)
+    @GetMapping("/sip_returns/{years}")
+    String sipReturns(@PathVariable int years)
     {
-        return timeSeries.getSipArray(0,number_of_years);
+        return analyzer.getSipArray(years);
     }
 }

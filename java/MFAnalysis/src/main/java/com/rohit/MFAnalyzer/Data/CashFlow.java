@@ -1,10 +1,13 @@
 package com.rohit.MFAnalyzer.Data;
 
+import com.rohit.MFAnalyzer.Utils.Utils;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.util.stream.IntStream;
 
+@Data
 @NoArgsConstructor
 public class CashFlow {
 
@@ -21,9 +24,10 @@ public class CashFlow {
         private LocalDate cash_flow_end_date;
         private LocalDate cash_flow_value_date;
         private double value;
+        private int indicative_xirr;
     }
 
-    private Valuation valuation;
+    private Valuation valuation = new Valuation();
 
 
     public CashFlow(EodPrice eod_price, double flow) {
@@ -44,6 +48,7 @@ public class CashFlow {
         this.valuation.cash_flow_end_date = cash_flow_end_date;
         this.valuation.cash_flow_start_date = cash_flow_start_date;
         this.valuation.cash_flow_value_date = cash_flow_value_date;
+
         return this;
     }
 
@@ -62,17 +67,21 @@ public class CashFlow {
                 + this.valuation.cash_flow_end_date + ","
                 + this.valuation.cash_flow_value_date + ","
                 + units + ","
-                + this.valuation.value;
+                + this.valuation.value + ","
+                + this.valuation.getPrice() + ","
+                + this.valuation.indicative_xirr;
     }
 
     public static String header() {
-        return "security_name,"
-                + "flow,"
-                + "cash_flow_start_date,"
-                + "cash_flow_end_date,"
-                + "cash_flow_value_date,"
-                + "unit,"
-                + "value";
+        return "Security_name,"
+                + "Flow,"
+                + "Cash_flow_start_date,"
+                + "Cash_flow_end_date,"
+                + "Cash_flow_value_date,"
+                + "Unit,"
+                + "Value,"
+                + "Valuation_price,"
+                +"Indicative_xirr";
     }
 }
 

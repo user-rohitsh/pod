@@ -1,16 +1,20 @@
 package com.rohit.MFAnalyzer;
 
+import com.rohit.MFAnalyzer.Data.MonlthlySipAnalyzer;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 public class Controller {
 
-    @GetMapping("/sip_returns")
-    String siptReturns(@RequestParam("years") int number_of_years)
+    @Autowired
+    MonlthlySipAnalyzer analyzer;
+
+    @GetMapping("/sip_returns/{years}")
+    String sipReturns(@PathVariable int years)
     {
-        //return                timeSeries.getSipArray(0,number_of_years);
-        return null;
+        return analyzer.getSipArray(years);
     }
 }

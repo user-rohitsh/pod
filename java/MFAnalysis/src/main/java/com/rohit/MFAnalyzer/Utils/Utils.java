@@ -2,10 +2,8 @@ package com.rohit.MFAnalyzer.Utils;
 
 import io.vavr.CheckedFunction1;
 import io.vavr.control.Try;
-import org.apache.commons.lang3.tuple.Pair;
 
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -35,6 +33,16 @@ public class Utils {
                 throw new RuntimeException(e.getMessage());
             }
         });
+    }
+
+    public static double annuityDueFV(double rate_percent, double annual_in_flows, int years) {
+        if (rate_percent == 0) return annual_in_flows * years;
+        double rate = rate_percent / 100.0;
+        double fv = Math.pow(1 + rate, years) - 1;
+        fv = fv / rate;
+        fv = fv * annual_in_flows;
+        fv = fv * (1 + rate);
+        return Math.round(fv*100.0)/100.0;
     }
 
 

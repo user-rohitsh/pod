@@ -4,6 +4,7 @@ import io.vavr.CheckedFunction1;
 import io.vavr.control.Try;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -26,13 +27,15 @@ public class Utils {
     }
 
     public static Stream<String> convertPathsToLines(Stream<Path> paths) {
-        return paths.filter(Files::isRegularFile).flatMap(path -> {
-            try {
-                return Files.lines(path).skip(1);
-            } catch (IOException e) {
-                throw new RuntimeException(e.getMessage());
-            }
-        });
+        return paths
+                .filter(Files::isRegularFile)
+                .flatMap(path -> {
+                    try {
+                        return Files.lines(path, Charset.defaultCharset()).skip(1);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e.getMessage());
+                    }
+                });
     }
 
     public static double annuityDueFV(double rate_percent, double annual_in_flows, int years) {
@@ -42,7 +45,7 @@ public class Utils {
         fv = fv / rate;
         fv = fv * annual_in_flows;
         fv = fv * (1 + rate);
-        return Math.round(fv*100.0)/100.0;
+        return Math.round(fv * 100.0) / 100.0;
     }
 
 

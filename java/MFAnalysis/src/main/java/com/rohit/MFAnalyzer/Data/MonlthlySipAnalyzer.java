@@ -29,21 +29,24 @@ public class MonlthlySipAnalyzer {
     @Autowired
     public MonlthlySipAnalyzer(MyProperties properties) {
         this.properties = properties;
-        this.properties.getFile_properties().stream().forEach(file_property -> {
+        this.properties.getFile_properties().stream().forEach(
+                file_property -> {
 
-            Try<Stream<String>> checked_csv_lines = Utils.getLines(file_property.getData_dir());
+                    Try<Stream<String>> checked_csv_lines = Utils.getLines(file_property.getData_dir());
 
-            if (checked_csv_lines.isFailure()) return;
+                    if (checked_csv_lines.isFailure()) return;
 
-            List<EodPrice> eod_prices_temp = parseEodPrices(checked_csv_lines.get(), file_property);
-            addMissingEodPrices(eod_prices_temp);
+                    List<EodPrice> eod_prices_temp = parseEodPrices(checked_csv_lines.get(), file_property);
+                    addMissingEodPrices(eod_prices_temp);
 
-            eod_prices_temp.sort(EodPrice::compareTo);
+                    eod_prices_temp.sort(EodPrice::compareTo);
 
-            list_of_eod_prices.add(eod_prices_temp
-                    .stream()
-                    .collect(Collectors.toMap(EodPrice::getDate, Function.identity(), (e1, e2) -> e1)));
-        });
+                    list_of_eod_prices.add(
+                            eod_prices_temp.stream()
+                                    .collect(Collectors.toMap(EodPrice::getDate, Function.identity(), (e1, e2) -> e1)));
+
+                    checked_csv_lines.get().close();
+                });
     }
 
     public List<EodPrice> parseEodPrices(Stream<String> lines, FileProperty properties) {

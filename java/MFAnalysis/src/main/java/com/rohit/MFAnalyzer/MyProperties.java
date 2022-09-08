@@ -4,13 +4,21 @@ import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+
 @Data
 @Component
-@ConfigurationProperties("eod")
+@ConfigurationProperties
 public class MyProperties {
-    private String security_name;
-    private String data_dir;
-    private int date_index;
-    private int eod_price_index;
-    private String date_format;
+
+    @Data
+    public static class FileProperty {
+        private String security_name;
+        private String data_dir;
+        private int date_index;
+        private int eod_price_index;
+        private String date_format;
+    }
+
+    private List<FileProperty> file_properties;
 }

@@ -5,4 +5,4 @@ RUN mkdir -p ~/downloads \
 && cd ~/kafka \
 && tar -xvzf ~/downloads/kafka.tgz --strip 1
 
-RUN apt install telnet
+RUN sudo apt install telnet

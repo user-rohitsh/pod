@@ -6,3 +6,4 @@ RUN mkdir -p ~/downloads \
 && tar -xvzf ~/downloads/kafka.tgz --strip 1
 
 RUN sudo apt install telnet
+RUN install java 18.0.1.fx-zulu

@@ -6,4 +6,6 @@ RUN mkdir -p ~/downloads \
 && tar -xvzf ~/downloads/kafka.tgz --strip 1
 
 RUN sudo apt install telnet
-RUN sdk install java 18.0.1.fx-zulu
+RUN bash -c ". /home/gitpod/.sdkman/bin/sdkman-init.sh && \
+    sdk install java 17.0.3-ms && \
+    sdk default java 17.0.3-ms"

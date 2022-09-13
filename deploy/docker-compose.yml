@@ -1,0 +1,36 @@
+version: "3.7"
+
+networks:
+  my_bridge:
+    driver: bridge
+
+services:
+  kafka:
+    image: pod.kafka
+    container_name: kafka.internal.test.com
+    build:
+      context: ./kafka
+      dockerfile: Dockerfile
+    ports:
+      - 9092:9092
+    volumes:
+      - /tmp/data/kafka:/tmp/data/kafka
+    #command: "/bin/bash -c /home/gitpod/kafka_scripts/start.sh && sudo touch 777 /home/gitpod/1 && tail -f /home/gitpod/1"
+    entrypoint: /home/gitpod/kafka_scripts/start.sh
+    networks:
+      my_bridge:
+        aliases:
+          - kafka.internal.test.com
+
+  kafka2:
+    image: pod.kafka
+    build:
+      context: ./kafka
+      dockerfile: Dockerfile
+    ports:
+      - 9092:9092
+    volumes:
+      - /tmp/data/kafka:/tmp/data/kafka
+    command: "/bin/bash"
+    networks:
+      my_bridge:

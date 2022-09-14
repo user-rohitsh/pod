@@ -1,7 +1,5 @@
 #!/bin/bash
-nohup ~/kafka_scripts/start_zookeeper.sh &
-sleep 2
-nohup ~/kafka_scripts/start_kafka.sh &
-touch ~/1
-sudo chmod 777 ~/1
-tail -f ~/1
+
+nohup ~/kafka/bin/zookeeper-server-start.sh ~/kafka/config/zookeeper.properties >~/start_zoo.log 2>&1 &
+sleep 20
+~/kafka/bin/kafka-server-start.sh ~/kafka/config/server.properties >~/start_kafka.log 2>&1

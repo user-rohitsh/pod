@@ -1,0 +1,7 @@
+image:
+  file: Dockerfile
+tasks:
+  - command: ./start.sh  
+ports:
+ - port: 9092
+   visibility: public

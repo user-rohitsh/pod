@@ -2,6 +2,7 @@ package com.rohit.file_persitence;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -24,17 +25,19 @@ public class Controller {
     MyProperties properties;
 
     @Autowired
-    public Controller( MyProperties properties) throws IOException {
+    public Controller(MyProperties properties) throws IOException {
 
-        this.properties=properties;
+        this.properties = properties;
         Path path = Paths.get(properties.getFile_name());
-        file_stream = Files.newOutputStream(path,CREATE, APPEND);
+        file_stream = Files.newOutputStream(path, CREATE, APPEND);
     }
 
-    @PostMapping("/save")
-    ResponseEntity<String> saveToFile(@RequestBody String data)
-    {
+    @PostMapping(value = "/save",
+            consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
+            produces = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+    ResponseEntity<String> saveToFile(@RequestBody String data) {
         try {
+            System.out.println("Received data -----" + data);
             file_stream.write(data.getBytes(StandardCharsets.UTF_8));
             return new ResponseEntity<String>("Saved successfully", HttpStatus.CREATED);
         } catch (IOException e) {

@@ -52,24 +52,6 @@ services:
       - my_network
 
   #my services
-  persistsv:
-    container_name: persistsv
-    build:
-      context: ../
-      dockerfile: deploy/Dockerfile
-    ports:
-      - "8081:8081"
-    entrypoint: "java -javaagent:/home/docker/opentelemetry-javaagent.jar
-      -Dotel.service.name=persistsv
-      -Dotel.exporter.otlp.endpoint=http://otel-collector:4317
-      -Dotel.traces.exporter=otlp
-      -Dotel.metrics.exporter=otlp
-      -jar FilePersistence-0.0.1-SNAPSHOT.jar"
-    depends_on:
-      - otel-collector
-    networks:
-      - my_network
-
   analysis1:
     container_name: analysis1
     build:

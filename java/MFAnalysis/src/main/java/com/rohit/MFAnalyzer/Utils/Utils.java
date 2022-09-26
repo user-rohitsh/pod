@@ -8,7 +8,9 @@ import java.nio.charset.Charset;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
 
 public class Utils {
@@ -48,5 +50,34 @@ public class Utils {
         return Math.round(fv * 100.0) / 100.0;
     }
 
+    //generate an array based on function f in domain [start, end); increment values by incrementer
+    public static <T extends Comparable<T>, R> R[] ArrayFromFunction(Function<T, R> f, T start, T end, UnaryOperator<T> incrementer) {
+        ArrayList<R> ret = new ArrayList<>();
 
+        T temp = start;
+        while (temp.compareTo(end) < 0) {
+            ret.add(f.apply(temp));
+            incrementer.apply(temp);
+        }
+
+        return (R[]) ret.toArray();
+    }
+
+    //first index with value greater than or equal to val
+    public static <T extends Comparable<T>> int lowerBound(T[] arr, T val) {
+        for (int i = 0; i < arr.length; i++) {
+            if (arr[i].compareTo(val) < 0) continue;
+            return i;
+        }
+        return -1;
+    }
+
+    //first index with value greater than val
+    public static <T extends Comparable<T>> int upperBound(T[] arr, T val) {
+        for (int i = 0; i < arr.length; i++) {
+            if (arr[i].compareTo(val) > 0) continue;
+            return i;
+        }
+        return -1;
+    }
 }

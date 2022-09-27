@@ -1,5 +1,6 @@
 package com.rohit.MFAnalyzer.Data;
 
+import com.rohit.MFAnalyzer.Utils.Utils;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -22,7 +23,7 @@ public class CashFlow {
         private LocalDate cash_flow_end_date;
         private LocalDate cash_flow_value_date;
         private double value;
-        private int indicative_xirr;
+        private Double indicative_xirr;
     }
 
     private Valuation valuation = new Valuation();
@@ -67,7 +68,7 @@ public class CashFlow {
                 + units + ","
                 + this.valuation.value + ","
                 + this.valuation.getPrice() + ","
-                + this.valuation.indicative_xirr;
+                + this.valuation.indicative_xirr  ;
     }
 
     public static String header() {
@@ -79,7 +80,7 @@ public class CashFlow {
                 + "Unit,"
                 + "Value,"
                 + "Valuation_price,"
-                +"Indicative_xirr";
+                + "Indicative_xirr";
     }
 }
 

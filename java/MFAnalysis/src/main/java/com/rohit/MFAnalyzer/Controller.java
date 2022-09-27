@@ -23,7 +23,7 @@ public class Controller {
 
     @GetMapping("/sip_returns/{years}")
     String sipReturns(@PathVariable int years) throws Exception {
-        String results = analyzer.getSipArray(years);
+        String results = analyzer.getSipDataFromPriceMaps(years);
         return results;
     }
 }

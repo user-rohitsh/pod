@@ -3,8 +3,8 @@ package com.rohit.MFAnalyzer.Data;
 import com.rohit.MFAnalyzer.MyProperties;
 import com.rohit.MFAnalyzer.MyProperties.FileProperty;
 import com.rohit.MFAnalyzer.Utils.Utils;
-import io.vavr.Tuple;
 import io.vavr.control.Try;
+import org.javatuples.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -14,7 +14,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 
@@ -23,11 +22,12 @@ public class MonlthlySipAnalyzer {
 
     private static final int NO_DAYS_IN_MONTH = 30;
 
-    private List<Map<LocalDate, EodPrice>> list_of_eod_prices = new ArrayList<>();
+    private List<Map<LocalDate, EodPrice>> eod_price_maps = new ArrayList<>();
     private MyProperties properties;
 
     @Autowired
     public MonlthlySipAnalyzer(MyProperties properties) {
+
         this.properties = properties;
         this.properties.getFile_properties().stream().forEach(
                 file_property -> {
@@ -41,7 +41,7 @@ public class MonlthlySipAnalyzer {
 
                     eod_prices_temp.sort(EodPrice::compareTo);
 
-                    list_of_eod_prices.add(
+                    eod_price_maps.add(
                             eod_prices_temp.stream()
                                     .collect(Collectors.toMap(EodPrice::getDate, Function.identity(), (e1, e2) -> e1)));
 
@@ -110,38 +110,42 @@ public class MonlthlySipAnalyzer {
                 .collect(CashFlow::new, CashFlow::accumulator, CashFlow::accumulator)
                 .value(sip_start_date, sip_end_date, sip_valuation_date, valuation_price);
 
-        int xirr = IntStream
-                .rangeClosed(-20, 20)
-                .mapToObj(r -> Tuple.of(r, Utils.annuityDueFV(r, 1000.0 * 12, years)))
-                .filter(tup -> tup._2 >= final_aggregated_cashflow.getValuation().getValue())
-                .findFirst()
-                .orElseGet(() -> Tuple.of(20, 0.0))
-                ._1();
-
-        final_aggregated_cashflow.getValuation().setIndicative_xirr(xirr);
-
         return final_aggregated_cashflow;
     }
 
-    public Stream<String> getSipArray(Map<LocalDate, EodPrice> eod_prices, int years) {
-
+    public Stream<String> getSipDataFromPriceMap(
+            Map<LocalDate, EodPrice> eod_prices,
+            int years,
+            Pair<Double, Double>[] indicative_returns) {
 
         return eod_prices.keySet()
                 .stream()
                 .sorted(LocalDate::compareTo)
                 .map(sip_start_date -> sip_returns(eod_prices, sip_start_date, years))
                 .filter(Objects::nonNull)
+                .map(cash_flow -> {
+                    cash_flow.getValuation().setIndicative_xirr(
+                            Utils.lowerBound(indicative_returns, cash_flow.getValuation().getValue())
+                    );
+                    return cash_flow;
+                })
                 .map(CashFlow::toString);
     }
 
-    public String getSipArray(int years) {
+    public String getSipDataFromPriceMaps(int years) {
+
+        Pair<Double, Double>[] irr_array = Utils.ArrayFromFunction(
+                r -> Utils.annuityDueFV(r, years),
+                -20.0,
+                20.0,
+                r -> r + 0.25);
 
         StringBuilder builder = new StringBuilder()
                 .append(CashFlow.header())
                 .append('\n');
 
-        list_of_eod_prices.stream()
-                .flatMap(eodPrices -> getSipArray(eodPrices, years))
+        eod_price_maps.stream()
+                .flatMap(eodPrices -> getSipDataFromPriceMap(eodPrices, years, irr_array))
                 .forEach(
                         flow -> {
                             builder.append(flow);

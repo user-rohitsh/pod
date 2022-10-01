@@ -1,7 +1,8 @@
 package com.rohit.MFAnalyzer.Utils;
 
 import io.vavr.CheckedFunction1;
-import io.vavr.collection.Array;
+import io.vavr.Tuple;
+import io.vavr.Tuple2;
 import io.vavr.control.Try;
 import org.javatuples.Pair;
 
@@ -11,9 +12,10 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.function.Function;
-import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
+import java.util.stream.DoubleStream;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public class Utils {
@@ -43,40 +45,41 @@ public class Utils {
                 });
     }
 
-    public static double annuityDueFV(double rate_percent, int years) {
-        if (rate_percent == 0) return 12000.0 * years;
+    //FV of an annuity with <no_of_cash_flow_months> monthly flows kept till <no_years_of_investment>
+    public static double futureValue(double rate_percent, Integer no_of_cash_flow_months, Double no_years_of_investment) {
         double rate = rate_percent / 100.0;
-        double fv = Math.pow(1 + rate, years) - 1;
-        fv = fv / rate;
-        fv = fv * 12000.0;
-        fv = fv * (1 + rate);
-        return Math.round(fv * 100.0) / 100.0;
+        return Utils.round(IntStream.range(0, no_of_cash_flow_months)
+                .filter(month -> no_years_of_investment - month / 12.0 > 0.00001)
+                .mapToDouble(month -> 1000.0 * Math.pow(1 + rate, no_years_of_investment - month / 12.0))
+                .sum());
     }
 
-    //generate an array based on function f in domain [start, end); increment values by incrementer
-    public static <T extends Comparable<T>, R> Pair<T, R>[] ArrayFromFunction(Function<T, R> f, T start, T end, UnaryOperator<T> incrementer) {
-        ArrayList<Pair<T, R>> ret = new ArrayList<>();
+    //generate an array of futureValues in domain [start, end);
+    public static Tuple2<Double, Double>[]
+    getIrrArray(Integer no_of_cash_flow_months, Double no_years_of_investment) {
 
-        T temp = start;
-        while (temp.compareTo(end) < 0) {
-            ret.add(Pair.with(temp, f.apply(temp)));
-            temp = incrementer.apply(temp);
-        }
-
-        return ret.toArray(new Pair[ret.size()]);
+        return (Tuple2<Double, Double>[])
+                IntStream.range(-20, 21)
+                        .mapToDouble(i -> i / 1.0)
+                        .mapToObj(d -> Tuple.of(d, futureValue(d, no_of_cash_flow_months, no_years_of_investment)))
+                        .collect(Collectors.toList())
+                        .toArray();
     }
 
     //first index with value greater than or equal to val
-    public static <T extends Comparable<T>, R extends Comparable<R>>
-    T lowerBound(Pair<T, R>[] arr, R val) {
+    public static
+    Double lowerBound(Tuple2<Double,Double>[] arr, Double val) {
 
-        T ret_val = null;
-        for (Pair<T, R> pair : arr) {
-            if (pair.getValue1().compareTo(val) <= 0)
-                ret_val = pair.getValue0();
+        Double ret_val = null;
+        for (Tuple2<Double,Double> pair : arr) {
+            if (pair._2.compareTo(val) <= 0)
+                ret_val = pair._1();
             else break;
         }
-
         return ret_val;
+    }
+
+    public static double round(double val) {
+        return Math.round(val * 100.0) / 100.0;
     }
 }

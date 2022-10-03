@@ -29,7 +29,7 @@ public class CashFlow {
             security_name = security_name == null ? flow.security_name : security_name;
             start_date = start_date == null ? flow.date : start_date;
             no_of_flows++;
-            units = Utils.round(units + flow.flow / flow.price);
+            units = units + flow.flow / flow.price;
         }
 
         public InvestmentSummary combiner(InvestmentSummary investmentSummary) {

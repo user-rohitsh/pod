@@ -76,9 +76,16 @@ public class MonlthlySipAnalyzer {
         if (fields.length <= Math.max(properties.getDate_index(), properties.getEod_price_index())) {
             return null;
         }
-        LocalDate date = LocalDate.parse(fields[properties.getDate_index()], fmtr);
-        Double price = Double.parseDouble(fields[properties.getEod_price_index()]);
-        return new EodPrice(properties.getSecurity_name(), date, price);
+        try {
+            LocalDate date = LocalDate.parse(fields[properties.getDate_index()], fmtr);
+            Double price = Double.parseDouble(fields[properties.getEod_price_index()]);
+            return new EodPrice(properties.getSecurity_name(), date, price);
+        } catch (Exception ex) {
+            System.out.println(ex.toString());
+        }
+
+        return null;
+
     }
 
     public void addMissingEodPrices(List<EodPrice> eod_prices) {
@@ -128,16 +135,19 @@ public class MonlthlySipAnalyzer {
         EodPrice valuation_price = eod_prices.getOrDefault(valuation_date, null);
         if (valuation_price == null) return "";
 
+        if ( eod_prices.getOrDefault(start_date, null) == null) return "";
+
         double no_years_of_investment = ChronoUnit.DAYS.between(start_date, valuation_date) / 365.0;
 
         Stream<LocalDate> dates = IntStream.range(0, no_of_flows)
                 .mapToObj(i -> start_date.plusMonths(i));
 
-        List<Tuple2<Double, Double>> irr_array = irr_array_generator.apply(no_of_flows, no_years_of_investment);
-
         InvestmentSummary summ = cashFlowSummary(eod_prices, dates);
         summ.setValue(Utils.round(summ.getUnits() * valuation_price.getPrice()));
-        summ.setXirr(Utils.lowerBound(irr_array, summ.getValue()).orElseGet( () -> Double.MIN_VALUE));
+
+        List<Tuple2<Double, Double>> irr_array = irr_array_generator.apply(no_of_flows, no_years_of_investment);
+
+        summ.setXirr(Utils.lowerBound(irr_array, summ.getValue()).orElseGet(() -> Double.MIN_VALUE));
         summ.setValuation_date(valuation_date);
 
         return summ.toString();

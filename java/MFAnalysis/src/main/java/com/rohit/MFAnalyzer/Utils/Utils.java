@@ -12,6 +12,8 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.DoubleStream;
@@ -55,31 +57,29 @@ public class Utils {
     }
 
     //generate an array of futureValues in domain [start, end);
-    public static Tuple2<Double, Double>[]
+    public static List<Tuple2<Double, Double>>
     getIrrArray(Integer no_of_cash_flow_months, Double no_years_of_investment) {
 
-        return (Tuple2<Double, Double>[])
-                IntStream.range(-20, 21)
+        return
+                IntStream.range(-50, 50)
                         .mapToDouble(i -> i / 1.0)
                         .mapToObj(d -> Tuple.of(d, futureValue(d, no_of_cash_flow_months, no_years_of_investment)))
-                        .collect(Collectors.toList())
-                        .toArray();
+                        .collect(Collectors.toList());
     }
 
     //first index with value greater than or equal to val
-    public static
-    Double lowerBound(Tuple2<Double,Double>[] arr, Double val) {
+    public static Optional<Double> lowerBound(List<Tuple2<Double, Double>> arr, Double val) {
 
         Double ret_val = null;
-        for (Tuple2<Double,Double> pair : arr) {
+        for (Tuple2<Double, Double> pair : arr) {
             if (pair._2.compareTo(val) <= 0)
                 ret_val = pair._1();
             else break;
         }
-        return ret_val;
+        return Optional.ofNullable(ret_val);
     }
 
     public static double round(double val) {
-        return Math.round(val * 100.0) / 100.0;
+        return Math.round(val * 1000.0) / 1000.0;
     }
 }

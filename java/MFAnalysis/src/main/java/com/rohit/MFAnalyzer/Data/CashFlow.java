@@ -1,5 +1,6 @@
 package com.rohit.MFAnalyzer.Data;
 
+import com.rohit.MFAnalyzer.Utils.Utils;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -18,6 +19,7 @@ public class CashFlow {
     public static class InvestmentSummary {
         private String security_name;
         private LocalDate start_date;
+        private LocalDate valuation_date;
         private int no_of_flows = 0;
         private double units;
         private double value;
@@ -27,7 +29,7 @@ public class CashFlow {
             security_name = security_name == null ? flow.security_name : security_name;
             start_date = start_date == null ? flow.date : start_date;
             no_of_flows++;
-            units = units + flow.flow / flow.price;
+            units = Utils.round(units + flow.flow / flow.price);
         }
 
         public InvestmentSummary combiner(InvestmentSummary investmentSummary) {
@@ -39,15 +41,21 @@ public class CashFlow {
             return ""
                     + security_name + ","
                     + this.start_date + ","
+                    + this.valuation_date + ","
                     + this.no_of_flows + ","
-                    + this.value;
+                    + this.units + ","
+                    + this.value + ","
+                    + this.xirr;
         }
 
         public static String header() {
             return "Security,"
-                    + "StartDate,"
-                    + "NoFlows,"
-                    + "Value,";
+                    + "Start Date,"
+                    + "Value Date,"
+                    + "No Of Flows,"
+                    + "Units,"
+                    + "Value,"
+                    + "XIRR";
         }
 
     }

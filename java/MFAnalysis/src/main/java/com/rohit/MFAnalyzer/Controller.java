@@ -1,6 +1,8 @@
 package com.rohit.MFAnalyzer;
 
+import com.rohit.MFAnalyzer.Data.EodPrice;
 import com.rohit.MFAnalyzer.Data.MonlthlySipAnalyzer;
+import io.vavr.CheckedFunction1;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -9,7 +11,9 @@ import org.springframework.web.bind.annotation.RestController;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Function;
 
 @RestController
 public class Controller {
@@ -27,7 +31,9 @@ public class Controller {
     @GetMapping("/rolling_returns")
     String rolling_returns(
             @RequestParam(name = "months", required = true) int months) {
-        return analyzer.getRollingSummariesForAllSecurities(months);
+        Function<Map<LocalDate, EodPrice>, String> lambda = prices -> analyzer.getRollingSipXirr(prices, months);
+
+        return analyzer.forAllSecurities(lambda);
     }
 
     @GetMapping("/returns")
@@ -38,20 +44,29 @@ public class Controller {
         DateTimeFormatter fmtr = DateTimeFormatter.ofPattern("dMMyy", Locale.US);
         LocalDate start_date = LocalDate.parse(start, fmtr);
         LocalDate end_date = LocalDate.parse(end, fmtr);
-        return analyzer.getAbsoluteReturn(start_date, end_date);
+
+        Function<Map<LocalDate, EodPrice>, String> lambda = prices -> analyzer.calculateSipXirr(
+                start_date,1,end_date,prices
+        );
+
+        return analyzer.forAllSecurities(lambda);
     }
 
-    @GetMapping("/returns")
+    @GetMapping("/sip_returns")
     String sip_returns(
             @RequestParam(name = "start", required = true) String start,
-            @RequestParam(name = "end_date", required = true) String end,
+            @RequestParam(name = "no_of_flows", required = true) Integer no_of_months,
             @RequestParam(name = "value_date", required = false) String value_dt
     ) {
         DateTimeFormatter fmtr = DateTimeFormatter.ofPattern("dMMyy", Locale.US);
         LocalDate start_date = LocalDate.parse(start, fmtr);
-        LocalDate end_date = LocalDate.parse(end, fmtr);
-        LocalDate value_date = value_dt == null ? end_date.plusMonths(1): LocalDate.parse(value_dt, fmtr);
+        LocalDate value_date =
+                value_dt == null ? start_date.plusMonths(no_of_months) : LocalDate.parse(value_dt, fmtr);
 
-        return analyzer.
+        Function<Map<LocalDate, EodPrice>, String> lambda = prices -> analyzer.calculateSipXirr(
+                start_date,no_of_months,value_date,prices
+        );
+
+        return analyzer.forAllSecurities(lambda);
     }
 }

@@ -5,6 +5,7 @@ import com.rohit.MFAnalyzer.MyProperties.FileProperty;
 import com.rohit.MFAnalyzer.Utils.Memoize;
 import com.rohit.MFAnalyzer.Utils.Utils;
 import com.rohit.MFAnalyzer.Data.CashFlow.InvestmentSummary;
+import io.vavr.CheckedFunction1;
 import io.vavr.Tuple;
 import io.vavr.Tuple2;
 import io.vavr.Tuple3;
@@ -22,6 +23,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 
@@ -32,7 +34,7 @@ public class MonlthlySipAnalyzer {
 
     private List<Map<LocalDate, EodPrice>> eod_price_maps = new ArrayList<>();
     private MyProperties properties;
-    private final BiFunction<Integer, Double, Tuple2<Double, Double>[]>
+    private final BiFunction<Integer, Double, List<Tuple2<Double, Double>>>
             irr_array_generator = Memoize.memoize(Utils::getIrrArray);
 
     @Autowired
@@ -113,61 +115,64 @@ public class MonlthlySipAnalyzer {
                 .collect(InvestmentSummary::new, InvestmentSummary::accumulator, InvestmentSummary::combiner);
     }
 
-    private InvestmentSummary calculateInvestmentSummary(
-            Map<LocalDate, EodPrice> eod_prices,
-            Tuple3<LocalDate, LocalDate, Integer> investment
+    public String calculateSipXirr(
+            LocalDate start_date,
+            int no_of_flows,
+            LocalDate valuation_date,
+            Map<LocalDate, EodPrice> eod_prices
     ) {
-        LocalDate start_date = investment._1;
-        LocalDate valuation_date = investment._2;
-        int no_of_flows = investment._3;
-        double no_years_of_investment = Period.between(start_date, valuation_date).getDays() / 365.0;
 
-        Supplier<LocalDate> sup = () -> start_date.plusMonths(1);
-        Stream<LocalDate> dates =
-                Stream
-                        .generate(sup)
-                        .limit(no_of_flows);
-
-        InvestmentSummary investmentSummary = cashFlowSummary(eod_prices, dates);
-
-        Tuple2<Double, Double>[] irr_array = irr_array_generator.apply(no_of_flows, no_years_of_investment);
+        if (valuation_date == null)
+            valuation_date = start_date.plusMonths(no_of_flows);
 
         EodPrice valuation_price = eod_prices.getOrDefault(valuation_date, null);
+        if (valuation_price == null) return "";
 
-        if (valuation_price == null) {
-            investmentSummary.setValue(0.0);
-            investmentSummary.setXirr(-100.0);
-        } else {
-            investmentSummary.setValue(Utils.round(investmentSummary.getUnits() * valuation_price.getPrice()));
-            investmentSummary.setXirr(Utils.lowerBound(irr_array, investmentSummary.getValue()));
-        }
+        double no_years_of_investment = ChronoUnit.DAYS.between(start_date, valuation_date) / 365.0;
 
-        return investmentSummary;
+        Stream<LocalDate> dates = IntStream.range(0, no_of_flows)
+                .mapToObj(i -> start_date.plusMonths(i));
+
+        List<Tuple2<Double, Double>> irr_array = irr_array_generator.apply(no_of_flows, no_years_of_investment);
+
+        InvestmentSummary summ = cashFlowSummary(eod_prices, dates);
+        summ.setValue(Utils.round(summ.getUnits() * valuation_price.getPrice()));
+        summ.setXirr(Utils.lowerBound(irr_array, summ.getValue()).orElseGet( () -> Double.MIN_VALUE));
+        summ.setValuation_date(valuation_date);
+
+        return summ.toString();
 
     }
 
-    public Stream<String> getRollingSummaries(
+    public String getRollingSipXirr(
             Map<LocalDate, EodPrice> eod_prices,
-            int no_of_contributions) {
+            int rolling_months) {
+
+        Function<LocalDate, String> calculateSipIrr
+                = (LocalDate start_date) -> calculateSipXirr(
+                start_date, rolling_months, start_date.plusMonths(rolling_months), eod_prices);
 
         return eod_prices.keySet().stream()
                 .sorted(LocalDate::compareTo)
-                .map(start_date -> Tuple.of(start_date, start_date.plusMonths(no_of_contributions), no_of_contributions))// Stream of rolling investment
-                .map(investment -> calculateInvestmentSummary(eod_prices, investment))
-                .filter(investment -> investment.getValue() > 0.0001)
-                .map(InvestmentSummary::toString);
+                .map(start_date -> calculateSipIrr.apply(start_date))
+                .filter(Objects::nonNull)
+                .filter(s -> s.equals("") == false)
+                .collect(Collectors.joining("\n"));
     }
 
-    public String forAllSecurities(int rolling_months) {
+    public String forAllSecurities(Function<Map<LocalDate, EodPrice>, String> lambda) {
 
         StringBuilder builder = new StringBuilder();
         builder.append(InvestmentSummary.header());
         builder.append("\n");
 
-        eod_price_maps.stream()
-                .flatMap(eodPrices -> getRollingSummaries(eodPrices, rolling_months))
-                .forEach(s -> builder.append(s));
+        builder.append(eod_price_maps.stream()
+                .map(eodPrices -> lambda.apply(eodPrices))
+                .filter(Objects::nonNull)
+                .filter(s -> s.equals("") == false)
+                .collect(Collectors.joining("\n")));
 
+        builder.append('\n');
         return builder.toString();
     }
 

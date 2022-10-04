@@ -21,4 +21,5 @@ public class MyProperties {
     }
 
     private List<FileProperty> file_properties;
+    private String file_persistence_service;
 }

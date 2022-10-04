@@ -2,17 +2,26 @@ package com.rohit.MFAnalyzer.Data;
 
 import com.rohit.MFAnalyzer.MyProperties;
 import com.rohit.MFAnalyzer.MyProperties.FileProperty;
+import com.rohit.MFAnalyzer.Utils.Memoize;
 import com.rohit.MFAnalyzer.Utils.Utils;
+import com.rohit.MFAnalyzer.Data.CashFlow.InvestmentSummary;
+import io.vavr.CheckedFunction1;
 import io.vavr.Tuple;
+import io.vavr.Tuple2;
+import io.vavr.Tuple3;
 import io.vavr.control.Try;
+import org.javatuples.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
+import java.time.Period;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -23,11 +32,14 @@ public class MonlthlySipAnalyzer {
 
     private static final int NO_DAYS_IN_MONTH = 30;
 
-    private List<Map<LocalDate, EodPrice>> list_of_eod_prices = new ArrayList<>();
+    private List<Map<LocalDate, EodPrice>> eod_price_maps = new ArrayList<>();
     private MyProperties properties;
+    private final BiFunction<Integer, Double, List<Tuple2<Double, Double>>>
+            irr_array_generator = Memoize.memoize(Utils::getIrrArray);
 
     @Autowired
     public MonlthlySipAnalyzer(MyProperties properties) {
+
         this.properties = properties;
         this.properties.getFile_properties().stream().forEach(
                 file_property -> {
@@ -41,7 +53,7 @@ public class MonlthlySipAnalyzer {
 
                     eod_prices_temp.sort(EodPrice::compareTo);
 
-                    list_of_eod_prices.add(
+                    eod_price_maps.add(
                             eod_prices_temp.stream()
                                     .collect(Collectors.toMap(EodPrice::getDate, Function.identity(), (e1, e2) -> e1)));
 
@@ -55,14 +67,25 @@ public class MonlthlySipAnalyzer {
 
         return lines
                 .map(line -> parseEodPriceFromCsv(fmtr, line, properties))
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
     public EodPrice parseEodPriceFromCsv(DateTimeFormatter fmtr, String csv_line, FileProperty properties) {
         String[] fields = csv_line.split(",");
-        LocalDate date = LocalDate.parse(fields[properties.getDate_index()], fmtr);
-        Double price = Double.parseDouble(fields[properties.getEod_price_index()]);
-        return new EodPrice(properties.getSecurity_name(), date, price);
+        if (fields.length <= Math.max(properties.getDate_index(), properties.getEod_price_index())) {
+            return null;
+        }
+        try {
+            LocalDate date = LocalDate.parse(fields[properties.getDate_index()], fmtr);
+            Double price = Double.parseDouble(fields[properties.getEod_price_index()]);
+            return new EodPrice(properties.getSecurity_name(), date, price);
+        } catch (Exception ex) {
+            System.out.println(ex.toString());
+        }
+
+        return null;
+
     }
 
     public void addMissingEodPrices(List<EodPrice> eod_prices) {
@@ -88,67 +111,80 @@ public class MonlthlySipAnalyzer {
         eod_prices.addAll(added);
     }
 
-
-    private CashFlow sip_returns(
+    private InvestmentSummary cashFlowSummary(
             Map<LocalDate, EodPrice> eod_prices,
-            LocalDate sip_start_date,
-            int years) {
-        int no_of_sips = years * 12;
-        LocalDate sip_end_date = sip_start_date.plusMonths(no_of_sips - 1);
-        LocalDate sip_valuation_date = sip_start_date.plusMonths(no_of_sips);
-
-        if (!eod_prices.containsKey(sip_end_date) || !eod_prices.containsKey(sip_valuation_date))
-            return null;
-
-        double valuation_price = eod_prices.get(sip_valuation_date).getPrice();
-
-        CashFlow final_aggregated_cashflow = Stream
-                .iterate(sip_start_date, date -> date.plusDays(NO_DAYS_IN_MONTH))
-                .limit(no_of_sips)
-                .map(eod_prices::get)
-                .map(eod_price -> new CashFlow(eod_price, 1000.0))
-                .collect(CashFlow::new, CashFlow::accumulator, CashFlow::accumulator)
-                .value(sip_start_date, sip_end_date, sip_valuation_date, valuation_price);
-
-        int xirr = IntStream
-                .rangeClosed(-20, 20)
-                .mapToObj(r -> Tuple.of(r, Utils.annuityDueFV(r, 1000.0 * 12, years)))
-                .filter(tup -> tup._2 >= final_aggregated_cashflow.getValuation().getValue())
-                .findFirst()
-                .orElseGet(() -> Tuple.of(20, 0.0))
-                ._1();
-
-        final_aggregated_cashflow.getValuation().setIndicative_xirr(xirr);
-
-        return final_aggregated_cashflow;
-    }
-
-    public Stream<String> getSipArray(Map<LocalDate, EodPrice> eod_prices, int years) {
-
-
-        return eod_prices.keySet()
-                .stream()
-                .sorted(LocalDate::compareTo)
-                .map(sip_start_date -> sip_returns(eod_prices, sip_start_date, years))
+            Stream<LocalDate> flow_dates
+    ) {
+        return flow_dates
+                .map(date -> eod_prices.getOrDefault(date, null))
                 .filter(Objects::nonNull)
-                .map(CashFlow::toString);
+                .map(eod_price -> new CashFlow(eod_price, 1000.0))
+                .collect(InvestmentSummary::new, InvestmentSummary::accumulator, InvestmentSummary::combiner);
     }
 
-    public String getSipArray(int years) {
+    public String calculateSipXirr(
+            LocalDate start_date,
+            int no_of_flows,
+            LocalDate valuation_date,
+            Map<LocalDate, EodPrice> eod_prices
+    ) {
 
-        StringBuilder builder = new StringBuilder()
-                .append(CashFlow.header())
-                .append('\n');
+        if (valuation_date == null)
+            valuation_date = start_date.plusMonths(no_of_flows);
 
-        list_of_eod_prices.stream()
-                .flatMap(eodPrices -> getSipArray(eodPrices, years))
-                .forEach(
-                        flow -> {
-                            builder.append(flow);
-                            builder.append('\n');
-                        });
+        EodPrice valuation_price = eod_prices.getOrDefault(valuation_date, null);
+        if (valuation_price == null) return "";
 
+        if ( eod_prices.getOrDefault(start_date, null) == null) return "";
+
+        double no_years_of_investment = ChronoUnit.DAYS.between(start_date, valuation_date) / 365.0;
+
+        Stream<LocalDate> dates = IntStream.range(0, no_of_flows)
+                .mapToObj(i -> start_date.plusMonths(i));
+
+        InvestmentSummary summ = cashFlowSummary(eod_prices, dates);
+        summ.setValue(Utils.round(summ.getUnits() * valuation_price.getPrice()));
+
+        List<Tuple2<Double, Double>> irr_array = irr_array_generator.apply(no_of_flows, no_years_of_investment);
+
+        summ.setXirr(Utils.lowerBound(irr_array, summ.getValue()).orElseGet(() -> Double.MIN_VALUE));
+        summ.setValuation_date(valuation_date);
+
+        return summ.toString();
+
+    }
+
+    public String getRollingSipXirr(
+            Map<LocalDate, EodPrice> eod_prices,
+            int rolling_months) {
+
+        Function<LocalDate, String> calculateSipIrr
+                = (LocalDate start_date) -> calculateSipXirr(
+                start_date, rolling_months, start_date.plusMonths(rolling_months), eod_prices);
+
+        return eod_prices.keySet().stream()
+                .sorted(LocalDate::compareTo)
+                .map(start_date -> calculateSipIrr.apply(start_date))
+                .filter(Objects::nonNull)
+                .filter(s -> s.equals("") == false)
+                .collect(Collectors.joining("\n"));
+    }
+
+    public String forAllSecurities(Function<Map<LocalDate, EodPrice>, String> lambda) {
+
+        StringBuilder builder = new StringBuilder();
+        builder.append(InvestmentSummary.header());
+        builder.append("\n");
+
+        builder.append(eod_price_maps.stream()
+                .map(eodPrices -> lambda.apply(eodPrices))
+                .filter(Objects::nonNull)
+                .filter(s -> s.equals("") == false)
+                .collect(Collectors.joining("\n")));
+
+        builder.append('\n');
         return builder.toString();
     }
+
 
 }

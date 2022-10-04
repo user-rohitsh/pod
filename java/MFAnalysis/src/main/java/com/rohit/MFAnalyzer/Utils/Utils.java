@@ -1,14 +1,23 @@
 package com.rohit.MFAnalyzer.Utils;
 
 import io.vavr.CheckedFunction1;
+import io.vavr.Tuple;
+import io.vavr.Tuple2;
 import io.vavr.control.Try;
+import org.javatuples.Pair;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.DoubleStream;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public class Utils {
@@ -38,15 +47,39 @@ public class Utils {
                 });
     }
 
-    public static double annuityDueFV(double rate_percent, double annual_in_flows, int years) {
-        if (rate_percent == 0) return annual_in_flows * years;
+    //FV of an annuity with <no_of_cash_flow_months> monthly flows kept till <no_years_of_investment>
+    public static double futureValue(double rate_percent, Integer no_of_cash_flow_months, Double no_years_of_investment) {
         double rate = rate_percent / 100.0;
-        double fv = Math.pow(1 + rate, years) - 1;
-        fv = fv / rate;
-        fv = fv * annual_in_flows;
-        fv = fv * (1 + rate);
-        return Math.round(fv * 100.0) / 100.0;
+        return Utils.round(IntStream.range(0, no_of_cash_flow_months)
+                .filter(month -> no_years_of_investment - month / 12.0 > 0.00001)
+                .mapToDouble(month -> 1000.0 * Math.pow(1 + rate, no_years_of_investment - month / 12.0))
+                .sum());
     }
 
+    //generate an array of futureValues in domain [start, end);
+    public static List<Tuple2<Double, Double>>
+    getIrrArray(Integer no_of_cash_flow_months, Double no_years_of_investment) {
 
+        return
+                IntStream.range(-50, 50)
+                        .mapToDouble(i -> i / 1.0)
+                        .mapToObj(d -> Tuple.of(d, futureValue(d, no_of_cash_flow_months, no_years_of_investment)))
+                        .collect(Collectors.toList());
+    }
+
+    //first index with value greater than or equal to val
+    public static Optional<Double> lowerBound(List<Tuple2<Double, Double>> arr, Double val) {
+
+        Double ret_val = null;
+        for (Tuple2<Double, Double> pair : arr) {
+            if (pair._2.compareTo(val) <= 0)
+                ret_val = pair._1();
+            else break;
+        }
+        return Optional.ofNullable(ret_val);
+    }
+
+    public static double round(double val) {
+        return Math.round(val * 1000.0) / 1000.0;
+    }
 }

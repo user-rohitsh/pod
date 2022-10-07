@@ -2,7 +2,6 @@ package com.rohit.MFAnalyzer;
 
 import com.rohit.MFAnalyzer.Data.EodPrice;
 import com.rohit.MFAnalyzer.Data.MonlthlySipAnalyzer;
-import io.vavr.CheckedFunction1;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;

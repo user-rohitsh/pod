@@ -52,24 +52,39 @@ services:
       - my_network
 
   #my services
-  analysis1:
-    container_name: analysis1
+  test_service:
+    container_name: service
     build:
       context: ../
       dockerfile: deploy/Dockerfile
     ports:
       - "8080:8080"
     entrypoint: "java -javaagent:/home/docker/opentelemetry-javaagent.jar
-      -Dotel.service.name=analysis1
+      -Dotel.service.name=test_service
       -Dotel.exporter.otlp.endpoint=http://otel-collector:4317
       -Dotel.traces.exporter=otlp
       -Dotel.metrics.exporter=otlp
-      -Dspring.kafka.producer.bootstrap-servers=localhost:9092
-      -Dspring.kafka.consumer.bootstrap-servers=localhost:9092
-      -Dfile_persistence_service=ws://persistsv:8081/save
-      -jar MFAnalysis-0.0.1-SNAPSHOT.jar"
+      -Dservice1.url=http://testservice1:8081/
+      -jar TestService-0.0.1-SNAPSHOT.jar"
     depends_on:
       - otel-collector
-      - persistsv
+    networks:
+      - my_network
+
+  testservice1:
+    container_name: testservice1
+    build:
+      context: ../
+      dockerfile: deploy/Dockerfile
+    ports:
+      - "8081:8081"
+    entrypoint: "java -javaagent:/home/docker/opentelemetry-javaagent.jar
+      -Dotel.service.name=test_service1
+      -Dotel.exporter.otlp.endpoint=http://otel-collector:4317
+      -Dotel.traces.exporter=otlp
+      -Dotel.metrics.exporter=otlp
+      -jar TestService1-0.0.1-SNAPSHOT.jar"
+    depends_on:
+      - otel-collector
     networks:
       - my_network

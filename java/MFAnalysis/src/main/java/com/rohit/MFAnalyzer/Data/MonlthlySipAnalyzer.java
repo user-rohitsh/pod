@@ -1,27 +1,21 @@
 package com.rohit.MFAnalyzer.Data;
 
+import com.rohit.MFAnalyzer.Data.CashFlow.InvestmentSummary;
 import com.rohit.MFAnalyzer.MyProperties;
 import com.rohit.MFAnalyzer.MyProperties.FileProperty;
 import com.rohit.MFAnalyzer.Utils.Memoize;
 import com.rohit.MFAnalyzer.Utils.Utils;
-import com.rohit.MFAnalyzer.Data.CashFlow.InvestmentSummary;
-import io.vavr.CheckedFunction1;
-import io.vavr.Tuple;
 import io.vavr.Tuple2;
-import io.vavr.Tuple3;
 import io.vavr.control.Try;
-import org.javatuples.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
-import java.time.Period;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;

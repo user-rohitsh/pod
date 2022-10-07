@@ -1,6 +1,5 @@
 package com.rohit.MFAnalyzer.Data;
 
-import com.rohit.MFAnalyzer.Utils.Utils;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 

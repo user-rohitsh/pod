@@ -1,7 +1,9 @@
-version: "3"
+version: "2.1"
 
 networks:
-  my_network:
+  telemetry_service:
+    external: true
+    name: my_network
 
 services:
   # Jaeger
@@ -13,16 +15,7 @@ services:
       - "14268"
       - "14250"
     networks:
-      - my_network
-
-  # Zipkin
-  zipkin-all-in-one:
-    image: openzipkin/zipkin:latest
-    container_name: zipkin-all-in-one
-    ports:
-      - "9411:9411"
-    networks:
-      - my_network
+      - telemetry_service
 
   # Collector
   otel-collector:
@@ -39,7 +32,7 @@ services:
       - "4317:4317"   # OTLP gRPC receiver
       - "55679:55679" # zpages extension
     networks:
-      - my_network
+      - telemetry_service
 
   prometheus:
     container_name: prometheus
@@ -49,7 +42,17 @@ services:
     ports:
       - "9090:9090"
     networks:
-      - my_network
+      - telemetry_service
+
+  grafana:
+    container_name: grafana
+    image: grafana/grafana-oss
+    volumes:
+      - grafana_storage:/var/lib/grafana grafana/grafana-enterprise
+    ports:
+      - "3000:3000"
+    networks:
+      - telemetry_service
 
   #my services
   test_service:
@@ -64,12 +67,14 @@ services:
       -Dotel.exporter.otlp.endpoint=http://otel-collector:4317
       -Dotel.traces.exporter=otlp
       -Dotel.metrics.exporter=otlp
+      -Dotel.bsp.max.queue.size=100
+      -Dotel.bsp.max.export.batch.size=10
       -Dservice1.url=http://testservice1:8081/
       -jar TestService-0.0.1-SNAPSHOT.jar"
     depends_on:
       - otel-collector
     networks:
-      - my_network
+      - telemetry_service
 
   testservice1:
     container_name: testservice1
@@ -87,4 +92,7 @@ services:
     depends_on:
       - otel-collector
     networks:
-      - my_network
+      - telemetry_service
+
+volumes:
+  grafana_storage:

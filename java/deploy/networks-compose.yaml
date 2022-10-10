@@ -1,0 +1,13 @@
+version: "2.1"
+
+networks:
+  my_network:
+    driver: bridge
+    name: my_network
+
+services:
+  dummy:
+    image: alpine:3.14
+    networks:
+      - my_network
+    entrypoint: "sleep 1"

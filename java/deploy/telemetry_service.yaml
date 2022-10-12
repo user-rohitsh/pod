@@ -22,6 +22,8 @@ services:
     image: otel/opentelemetry-collector-contrib-dev:latest
     container_name: otel-collector
     command: [ "--config=/etc/otel-collector-config.yaml", "" ]
+    stdin_open: true
+    tty: true
     volumes:
       - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml
     ports:
@@ -55,20 +57,22 @@ services:
       - telemetry_service
 
   #my services
-  test_service:
-    container_name: service
+  testservice:
+    container_name: testservice
     build:
       context: ../
       dockerfile: deploy/Dockerfile
     ports:
       - "8080:8080"
-    entrypoint: "java -javaagent:/home/docker/opentelemetry-javaagent.jar
+    mem_limit: "1g"
+    mem_reservation: "512m"
+    entrypoint: "java 
+      -Xmx10g
+      -javaagent:/home/docker/opentelemetry-javaagent.jar
       -Dotel.service.name=test_service
       -Dotel.exporter.otlp.endpoint=http://otel-collector:4317
       -Dotel.traces.exporter=otlp
       -Dotel.metrics.exporter=otlp
-      -Dotel.bsp.max.queue.size=100
-      -Dotel.bsp.max.export.batch.size=10
       -Dservice1.url=http://testservice1:8081/
       -jar TestService-0.0.1-SNAPSHOT.jar"
     depends_on:

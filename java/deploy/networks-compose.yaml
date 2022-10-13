@@ -7,7 +7,12 @@ networks:
 
 services:
   dummy:
-    image: alpine:3.14
+    container_name: dummy
+    build:
+      context: ../
+      dockerfile: deploy/Dockerfile
     networks:
       - my_network
-    entrypoint: "sleep 1"
+    entrypoint: "sleep 10000"
+    tty: true
+    stdin_open: true

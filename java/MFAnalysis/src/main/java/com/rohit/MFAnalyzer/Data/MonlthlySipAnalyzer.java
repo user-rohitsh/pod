@@ -7,6 +7,8 @@ import com.rohit.MFAnalyzer.Utils.Memoize;
 import com.rohit.MFAnalyzer.Utils.Utils;
 import io.vavr.Tuple2;
 import io.vavr.control.Try;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -25,6 +27,7 @@ import java.util.stream.Stream;
 public class MonlthlySipAnalyzer {
 
     private static final int NO_DAYS_IN_MONTH = 30;
+    private final Logger logger;
 
     private List<Map<LocalDate, EodPrice>> eod_price_maps = new ArrayList<>();
     private MyProperties properties;
@@ -33,6 +36,8 @@ public class MonlthlySipAnalyzer {
 
     @Autowired
     public MonlthlySipAnalyzer(MyProperties properties) {
+
+        logger = LoggerFactory.getLogger(this.getClass());
 
         this.properties = properties;
         this.properties.getFile_properties().stream().forEach(
@@ -46,6 +51,8 @@ public class MonlthlySipAnalyzer {
                     addMissingEodPrices(eod_prices_temp);
 
                     eod_prices_temp.sort(EodPrice::compareTo);
+
+                    logger.info("Adding rows " + eod_prices_temp.size());
 
                     eod_price_maps.add(
                             eod_prices_temp.stream()

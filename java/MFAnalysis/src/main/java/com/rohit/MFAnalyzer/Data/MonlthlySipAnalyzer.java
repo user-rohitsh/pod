@@ -1,27 +1,23 @@
 package com.rohit.MFAnalyzer.Data;
 
+import com.rohit.MFAnalyzer.Data.CashFlow.InvestmentSummary;
 import com.rohit.MFAnalyzer.MyProperties;
 import com.rohit.MFAnalyzer.MyProperties.FileProperty;
 import com.rohit.MFAnalyzer.Utils.Memoize;
 import com.rohit.MFAnalyzer.Utils.Utils;
-import com.rohit.MFAnalyzer.Data.CashFlow.InvestmentSummary;
-import io.vavr.CheckedFunction1;
-import io.vavr.Tuple;
 import io.vavr.Tuple2;
-import io.vavr.Tuple3;
 import io.vavr.control.Try;
-import org.javatuples.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
-import java.time.Period;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -31,6 +27,7 @@ import java.util.stream.Stream;
 public class MonlthlySipAnalyzer {
 
     private static final int NO_DAYS_IN_MONTH = 30;
+    private final Logger logger;
 
     private List<Map<LocalDate, EodPrice>> eod_price_maps = new ArrayList<>();
     private MyProperties properties;
@@ -39,6 +36,8 @@ public class MonlthlySipAnalyzer {
 
     @Autowired
     public MonlthlySipAnalyzer(MyProperties properties) {
+
+        logger = LoggerFactory.getLogger(this.getClass());
 
         this.properties = properties;
         this.properties.getFile_properties().stream().forEach(
@@ -52,6 +51,8 @@ public class MonlthlySipAnalyzer {
                     addMissingEodPrices(eod_prices_temp);
 
                     eod_prices_temp.sort(EodPrice::compareTo);
+
+                    logger.info("Adding rows " + eod_prices_temp.size());
 
                     eod_price_maps.add(
                             eod_prices_temp.stream()

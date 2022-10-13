@@ -1,0 +1,18 @@
+version: "2.1"
+
+networks:
+  my_network:
+    driver: bridge
+    name: my_network
+
+services:
+  dummy:
+    container_name: dummy
+    build:
+      context: ../
+      dockerfile: deploy/Dockerfile
+    networks:
+      - my_network
+    entrypoint: "sleep 10000"
+    tty: true
+    stdin_open: true

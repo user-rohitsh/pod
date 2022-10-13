@@ -1,7 +1,9 @@
-version: "3"
+version: "2.1"
 
 networks:
-  my_network:
+  telemetry_service:
+    external: true
+    name: my_network
 
 services:
   # Jaeger
@@ -13,22 +15,15 @@ services:
       - "14268"
       - "14250"
     networks:
-      - my_network
-
-  # Zipkin
-  zipkin-all-in-one:
-    image: openzipkin/zipkin:latest
-    container_name: zipkin-all-in-one
-    ports:
-      - "9411:9411"
-    networks:
-      - my_network
+      - telemetry_service
 
   # Collector
   otel-collector:
     image: otel/opentelemetry-collector-contrib-dev:latest
     container_name: otel-collector
     command: [ "--config=/etc/otel-collector-config.yaml", "" ]
+    stdin_open: true
+    tty: true
     volumes:
       - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml
     ports:
@@ -39,7 +34,7 @@ services:
       - "4317:4317"   # OTLP gRPC receiver
       - "55679:55679" # zpages extension
     networks:
-      - my_network
+      - telemetry_service
 
   prometheus:
     container_name: prometheus
@@ -49,27 +44,59 @@ services:
     ports:
       - "9090:9090"
     networks:
-      - my_network
+      - telemetry_service
+
+  grafana:
+    container_name: grafana
+    image: grafana/grafana-oss
+    volumes:
+      - grafana_storage:/var/lib/grafana grafana/grafana-enterprise
+    ports:
+      - "3000:3000"
+    networks:
+      - telemetry_service
 
   #my services
-  analysis1:
-    container_name: analysis1
+  testservice:
+    container_name: testservice
     build:
       context: ../
       dockerfile: deploy/Dockerfile
     ports:
       - "8080:8080"
-    entrypoint: "java -javaagent:/home/docker/opentelemetry-javaagent.jar
-      -Dotel.service.name=analysis1
+    mem_limit: "1g"
+    mem_reservation: "512m"
+    entrypoint: "java 
+      -Xmx10g
+      -javaagent:/home/docker/opentelemetry-javaagent.jar
+      -Dotel.service.name=test_service
       -Dotel.exporter.otlp.endpoint=http://otel-collector:4317
       -Dotel.traces.exporter=otlp
       -Dotel.metrics.exporter=otlp
-      -Dspring.kafka.producer.bootstrap-servers=localhost:9092
-      -Dspring.kafka.consumer.bootstrap-servers=localhost:9092
-      -Dfile_persistence_service=ws://persistsv:8081/save
-      -jar MFAnalysis-0.0.1-SNAPSHOT.jar"
+      -Dservice1.url=http://testservice1:8081/
+      -jar TestService-0.0.1-SNAPSHOT.jar"
     depends_on:
       - otel-collector
-      - persistsv
     networks:
-      - my_network
+      - telemetry_service
+
+  testservice1:
+    container_name: testservice1
+    build:
+      context: ../
+      dockerfile: deploy/Dockerfile
+    ports:
+      - "8081:8081"
+    entrypoint: "java -javaagent:/home/docker/opentelemetry-javaagent.jar
+      -Dotel.service.name=test_service1
+      -Dotel.exporter.otlp.endpoint=http://otel-collector:4317
+      -Dotel.traces.exporter=otlp
+      -Dotel.metrics.exporter=otlp
+      -jar TestService1-0.0.1-SNAPSHOT.jar"
+    depends_on:
+      - otel-collector
+    networks:
+      - telemetry_service
+
+volumes:
+  grafana_storage:

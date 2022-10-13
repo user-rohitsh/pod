@@ -3,33 +3,53 @@ receivers:
     protocols:
       grpc:
 
+  prometheus/spring_boot:
+    config:
+      scrape_configs:
+        - job_name: "otel-collector1"
+          scrape_interval: 2s
+          metrics_path: "/actuator/prometheus"
+          static_configs:
+            - targets: [ "host.docker.internal:8080" ]
+
 exporters:
   prometheus:
     endpoint: "0.0.0.0:8889"
     const_labels:
       label1: value1
 
-  zipkin:
-    endpoint: "http://zipkin-all-in-one:9411/api/v2/spans"
-    format: proto
-
   jaeger:
     endpoint: jaeger-all-in-one:14250
     tls:
       insecure: true
 
+  logging:
+    logLevel: debug
+
 processors:
   batch:
+
+  filter:
+    metrics:
+      include:
+        match_type: regexp
+        metric_names:
+          - jvm_memory_committed_bytes*
+          - process_cpu_usage*
+          - system_cpu_usage*
+          - system_cpu_count*
 
 service:
   pipelines:
 
     metrics:
-      receivers: [otlp]
-      processors: [batch]
-      exporters: [prometheus]
+      receivers: [otlp, prometheus/spring_boot]
+      processors: [batch, filter]
+      #exporters: [logging]
+      exporters: [prometheus, logging]
 
     traces:
       receivers: [ otlp ]
       processors: [ batch ]
-      exporters: [ zipkin, jaeger ]
+      exporters: [logging]
+      #exporters: [  jaeger ]

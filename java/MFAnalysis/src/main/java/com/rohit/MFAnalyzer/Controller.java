@@ -2,7 +2,8 @@ package com.rohit.MFAnalyzer;
 
 import com.rohit.MFAnalyzer.Data.EodPrice;
 import com.rohit.MFAnalyzer.Data.MonlthlySipAnalyzer;
-import io.vavr.CheckedFunction1;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -21,11 +22,14 @@ public class Controller {
     MonlthlySipAnalyzer analyzer;
     private MyProperties properties;
 
+    Logger logger ;
+
     @Autowired
     public Controller(MonlthlySipAnalyzer analyzer,
                       MyProperties properties) throws ExecutionException, InterruptedException {
         this.properties = properties;
         this.analyzer = analyzer;
+        logger = LoggerFactory.getLogger(this.getClass());
     }
 
     @GetMapping("/rolling_returns")

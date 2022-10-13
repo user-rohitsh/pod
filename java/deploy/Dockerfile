@@ -20,5 +20,6 @@ USER docker
 WORKDIR /home/docker
 
 COPY deploy/opentelemetry-javaagent.jar ./
-#COPY "FilePersistence/target/FilePersistence-0.0.1-SNAPSHOT.jar" ./
-COPY "MFAnalysis/target/MFAnalysis-0.0.1-SNAPSHOT.jar" ./
+
+COPY "TestService/target/TestService-0.0.1-SNAPSHOT.jar" ./
+COPY "TestService1/target/TestService1-0.0.1-SNAPSHOT.jar" ./

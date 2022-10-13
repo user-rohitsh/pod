@@ -31,7 +31,7 @@ public class MemoryHogger {
             logger.info("Allocated 1");
         }
         else if (strs.size() >= 1) {
-            strs.remove(1);
+            strs.remove(0);
             logger.info("De Allocated 1");
         }
 

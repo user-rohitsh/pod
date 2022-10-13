@@ -1,0 +1,32 @@
+version: "2.1"
+
+networks:
+  telemetry_service:
+    external: true
+    name: my_network
+
+services:
+  testservice1:
+    container_name: testservice1
+    build:
+      context: ../
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8081"
+    mem_limit: "1g"
+    mem_reservation: "512m"
+    entrypoint: "java 
+      -Xmx10g
+      -javaagent:/home/docker/opentelemetry-javaagent.jar
+      -Dotel.service.name=test_service1
+      -Dotel.exporter.otlp.endpoint=http://otel-collector:4317
+      -Dotel.traces.exporter=otlp
+      -Dotel.metrics.exporter=otlp
+      -Dotel.instrumentation.common.experimental.controller-telemetry.enabled=false
+      -Dotel.instrumentation.common.experimental.view-telemetry.enabled=false
+      -jar TestService1-0.0.1-SNAPSHOT.jar"
+    networks:
+      - telemetry_service
+    volumes:
+      - ../../TestService1/target/TestService1-0.0.1-SNAPSHOT.jar:/home/docker/TestService1-0.0.1-SNAPSHOT.jar
+      - ../opentelemetry-javaagent.jar:/home/docker/opentelemetry-javaagent.jar

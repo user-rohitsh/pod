@@ -1,0 +1,18 @@
+version: "2.1"
+
+networks:
+  telemetry_service:
+    external: true
+    name: my_network
+
+services:
+  # Jaeger
+  jaeger-all-in-one:
+    image: jaegertracing/all-in-one:latest
+    container_name: jaeger-all-in-one
+    ports:
+      - "16686:16686"
+      - "14268"
+      - "14250"
+    networks:
+      - telemetry_service

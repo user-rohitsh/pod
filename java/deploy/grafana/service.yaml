@@ -1,0 +1,20 @@
+version: "2.1"
+
+networks:
+  telemetry_service:
+    external: true
+    name: my_network
+
+services:
+  grafana:
+    container_name: grafana
+    image: grafana/grafana-oss
+    volumes:
+      - grafana_storage:/var/lib/grafana grafana/grafana-enterprise
+    ports:
+      - "3000:3000"
+    networks:
+      - telemetry_service
+
+volumes:
+  grafana_storage:

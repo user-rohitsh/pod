@@ -18,8 +18,3 @@ RUN adduser \
 
 USER docker
 WORKDIR /home/docker
-
-COPY deploy/opentelemetry-javaagent.jar ./
-
-COPY "TestService/target/TestService-0.0.1-SNAPSHOT.jar" ./
-COPY "TestService1/target/TestService1-0.0.1-SNAPSHOT.jar" ./

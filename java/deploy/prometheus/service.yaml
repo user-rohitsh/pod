@@ -1,0 +1,17 @@
+version: "2.1"
+
+networks:
+  telemetry_service:
+    external: true
+    name: my_network
+
+services:
+  prometheus:
+    container_name: prometheus
+    image: prom/prometheus:latest
+    volumes:
+      - ./prometheus.yaml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - telemetry_service

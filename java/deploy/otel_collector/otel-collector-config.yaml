@@ -35,20 +35,25 @@ processors:
         match_type: regexp
         metric_names:
           - jvm_memory_committed_bytes*
+          - http_server_requests*
           - process_cpu_usage*
           - system_cpu_usage*
           - system_cpu_count*
+
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 35
 
 service:
   pipelines:
 
     metrics:
       receivers: [otlp, prometheus/spring_boot]
-      processors: [batch, filter]
+      processors: [batch]
       #exporters: [logging]
       exporters: [prometheus, logging]
 
     traces:
       receivers: [ otlp ]
-      processors: [ batch ]
+      processors: [ memory_limiter, batch ]
       exporters: [  jaeger, logging ]

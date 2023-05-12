@@ -1,0 +1,5 @@
+[KAFKA_CONSUMER]
+bootstrap.servers = localhost:9092
+group.id = poc
+enable.auto.commit =  True
+auto.offset.reset = earliest

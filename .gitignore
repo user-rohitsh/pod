@@ -31,6 +31,9 @@
 *.out
 *.app
 
+#compiled pyc
+*.pyc 
+
 *debug
 *build
 *.log
@@ -38,4 +41,4 @@
 **/.idea/
 .DS_Store
 **/target/
-
+**/__pycache__/

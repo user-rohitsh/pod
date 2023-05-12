@@ -24,8 +24,8 @@ services:
       -Dotel.traces.exporter=otlp
       -Dotel.metrics.exporter=otlp
       -Dservice1.url=http://testservice1:8081/
-      -Dotel.instrumentation.common.experimental.controller-telemetry.enabled=false
-      -Dotel.instrumentation.common.experimental.view-telemetry.enabled=false
+      -Dspring.kafka.consumer.bootstrap-servers=broker:29092 
+      -Dspring.kafka.producer.bootstrap-servers=broker:29092
       -jar TestService-0.0.1-SNAPSHOT.jar"
     networks:
       - telemetry_service

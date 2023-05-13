@@ -42,9 +42,15 @@ def find_nearest_spot_in_vector(prices: list[Option.FairValue], spot_to_search: 
 
 
 def make_request(option: Option, spot: float):
-    s = {}
-    s["option_id"] = option.id
-    s["spot"] = str(spot)
-    s["underlying_id"] = option.und
+    s = {"option_id": option.id, "spot": str(spot), "underlying_id": option.und}
     return json.dumps(s)
 
+
+def option_from_mongo_document(doc):
+    return Option(
+        doc.get("option_id"),
+        doc.get("underlying_id"),
+        float(doc.get("strike_price")),
+        doc.get("expiry"),
+        doc.get("type")
+    )

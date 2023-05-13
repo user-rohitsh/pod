@@ -15,12 +15,18 @@ class TestQuoteGenerator(IsolatedAsyncioTestCase):
                             datefmt='%H:%M:%S',
                             level=logging.DEBUG)
 
+        self.options = [
+            Option("id1","MSFT",100.0,"19/05/2023", "CALL"),
+            Option("id2", "MSFT", 100.0, "17/06/2023", "CALL"),
+            Option("id3", "AAPL", 100.0, "19/05/2023", "CALL"),
+            Option("id4", "AAPL", 100.0, "17/06/2023", "CALL"),
+        ]
+
     async def test_full_price(self):
-        # generator = self.generator
+
         generator = QuoteGenerator(
             MockWebSocketClient,
-            ["id1,MSFT,100,19/05/2023,CALL", "id2,MSFT,100,17/06/2023,CALL", "id3,AAPL,200,19/05/2023,CALL"]
-
+            self.options
         )
 
         await generator.initialize("")
@@ -33,11 +39,10 @@ class TestQuoteGenerator(IsolatedAsyncioTestCase):
             self.assertListEqual(option.value_vector, [Option.FairValue(option, 10.0, 10.0, 1.0)])
 
     async def test_linear_interpolation(self):
-        # generator = self.generator
         generator = QuoteGenerator(
             MockWebSocketClient,
-            ["id1,MSFT,100,19/05/2023,CALL", "id2,MSFT,100,17/06/2023,CALL", "id3,AAPL,200,19/05/2023,CALL"]
-        )
+            self.options
+         )
 
         await generator.initialize("")
 

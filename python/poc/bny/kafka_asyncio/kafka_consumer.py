@@ -25,7 +25,6 @@ class KafkaConsumer(object):
 
     async def start(self):
         await self.__consumer.start()
-        await asyncio.sleep(5)
 
     async def stop(self):
         await self.__consumer.stop()

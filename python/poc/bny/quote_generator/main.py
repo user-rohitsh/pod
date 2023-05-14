@@ -32,6 +32,7 @@ class Container(containers.DeclarativeContainer):
 
 
 async def process_message(generator: QuoteGenerator, messages: list[dict]):
+    logging.info("processing quote for {}".format(' '.join([elem["und"] for elem in messages])))
     await generator.quote_generate(messages)
 
 

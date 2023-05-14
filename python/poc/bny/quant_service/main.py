@@ -21,21 +21,21 @@ async def websocket_endpoint(websocket: WebSocket):
     while True:
         data = await websocket.receive_text()
         print("accepted request")
-
-        reply_json = await process_request(data)
-
+        asyncio.create_task(process_request(data, websocket))
         print("completed request")
-        await websocket.send_text(reply_json)
 
 
-async def process_request(data: str) -> str:
+async def process_request(data: str, websocket):
+    option_id = ""
     try:
         payload_dict = json.loads(data)
         option_id = payload_dict["option_id"]
         spot = payload_dict["spot"]
 
         # processing requests - calculate price
-        await asyncio.sleep(1)
+        if option_id != "id8":
+            await asyncio.sleep(600)
+        await  asyncio.sleep(1)
 
         reply = {
             "option_id": option_id,
@@ -47,7 +47,8 @@ async def process_request(data: str) -> str:
     except Exception as ex:
         reply_json = "{}"
 
-    return reply_json
+    await websocket.send_text(reply_json)
+    print("completed request {}", option_id)
 
 
 if __name__ == '__main__':

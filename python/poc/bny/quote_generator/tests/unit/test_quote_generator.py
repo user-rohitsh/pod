@@ -23,8 +23,8 @@ class TestQuoteGenerator(IsolatedAsyncioTestCase):
 
     async def test_full_price(self):
 
-        mongo = MockMongo(self.conf )
-        sock_client = MockWebSocketClient(self.conf )
+        mongo = MockMongo(self.conf)
+        sock_client = MockWebSocketClient(self.conf)
         generator = QuoteGenerator(
             sock_client,
             mongo,

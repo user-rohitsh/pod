@@ -33,8 +33,6 @@ async def process_request(data: str, websocket):
         spot = payload_dict["spot"]
 
         # processing requests - calculate price
-        if option_id != "id8":
-            await asyncio.sleep(600)
         await  asyncio.sleep(1)
 
         reply = {

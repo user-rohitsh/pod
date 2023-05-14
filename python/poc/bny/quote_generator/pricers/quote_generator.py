@@ -1,68 +1,76 @@
 import asyncio
-import csv
+import datetime
 import logging
+from itertools import groupby
 
 from quote_generator.pricers.utils import *
-from quote_generator.pricers.utils import Option, make_request
-from quote_generator.websocket_client.abstract_client import AbstractWebSocketClient
+from quote_generator.pricers.utils import Option, make_request, find_nearest_spot_in_vector
 
 
 class QuoteGenerator(object):
 
-    def __init__(self, client_impl_class: type[AbstractWebSocketClient], test_data=None):
-
+    def __init__(self, sock_client, mongo, config: {}):
         self.all_options: dict[str, Option] = {}
         self.underlying_to_options: dict[str, list[str]] = {}
         self.in_progress: dict[str:bool] = {}
+        self.__config = config
+        url = self.__config["MONGODB"]["mongodb.url"]
+        self.mongo = mongo
+        self.__web_socket_client = sock_client
+        self.__tolerance = float(self.__config["QUANT"]["quant.tolerance"])
 
-        if test_data is not None:
-            self.read(test_data)
-        else:
-            with open('config/options.txt', 'r') as f:
-                self.read(f)
-
-        self.__client = client_impl_class()
-
-    def read(self, data):
-        reader = csv.reader(data)
-        for row in reader:
-            option: Option = Option(row[0], row[1], float(row[2]), row[3], row[4])
-            self.all_options[row[0]] = option
+    def read(self, options):
+        for option in options:
+            self.all_options[option.id] = option
             self.underlying_to_options.setdefault(option.und, []).append(option.id)
 
-    async def initialize(self, url):
-        await  self.__client.initialize(url, self.on_reply)
+    async def initialize(self):
+        await  self.__web_socket_client.initialize(self.on_reply)
+        db_name = self.__config["MONGODB"]["mongodb.dbname"]
+        collection = self.__config["MONGODB"]["mongodb.collection"]
+        mongo_documents = await self.mongo.get_all_documents(db_name, collection)
+        options = [option_from_mongo_document(document) for document in mongo_documents]
+        self.read(options)
 
-    async def quote_generate(self, underlying: str, spot: float, tolerance: float):
+    async def quote_generate(self, messages: list[dict]):
+
+        messages.sort(key=lambda m: (m.get("und"), m.get("timestamp")))
+        collated = [list(g).pop() for k, g in groupby(messages, lambda m: m.get("und"))]
+
+        for m in collated:
+            spot = float(m["spot"])
+            underlying = m["und"]
+            await self.interpolate_or_price(underlying, spot)
+
+    async def interpolate_or_price(self, underlying: str, spot: float):
 
         if self.in_progress.get(underlying):
             logging.info("skipping underlying {} as quote request is in progress")
             return
 
-        options_ids_for_this_und: list[str] = self.underlying_to_options.get(underlying)
+        options_ids_for_this_und: list[str] = self.underlying_to_options.get(underlying, [])
 
         # price each option
         for option_id in options_ids_for_this_und:
             option = self.all_options[option_id]
             nearest = find_nearest_spot_in_vector(option.value_vector, spot)
 
-            if nearest is None or abs(spot - nearest.spot) > tolerance:
+            if nearest is None or abs(spot - nearest.spot) > self.__tolerance:
                 # create a task to generate quote
                 task_name = "{}.{}.{}.{}".format(option.und, option.type, option.expiry, option.strike)
+                self.in_progress[option.und] = True
                 asyncio.create_task(self.call_quant_service_to_price(option, spot), name=task_name)
                 logging.info("sent price request to quants {} {} {}".format(option.und, option.id, spot))
             else:
                 interpolated_value = nearest.value + (spot - nearest.spot) * nearest.beta
-                logging.info("interpolated prices{} {} {} {}".format(option.und, option.id, spot,interpolated_value))
-                QuoteGenerator.quote(option, interpolated_value)
+                logging.info("interpolated price {} {} {} {}".format(option.und, option.id, spot, interpolated_value))
+                self.quote(option, interpolated_value)
 
     async def call_quant_service_to_price(self, option, spot: float):
         request = make_request(option, spot)
-        self.in_progress[option.und] = True
-        await self.__client.send(request)
+        await self.__web_socket_client.send(request)
 
-    @classmethod
-    def quote(cls, option: Option, value: float):
+    def quote(self, option: Option, value: float):
         bid = value - 0.05
         ask = value + 0.05
         option_name = "{}|{}|{}|{}".format(option.und, option.type, option.expiry, option.strike)
@@ -71,7 +79,19 @@ class QuoteGenerator(object):
             option_name,
             bid,
             ask))
+
         # sendQuoteToExchange(option_id, bid,ask) ## not blocking
+        ct = datetime.datetime.now()
+        ts = ct.timestamp()
+        asyncio.create_task(self.mongo.insert_all("POC", "quotes", [
+            {
+                "time": ts,
+                "option_id": option.id,
+                "underlying": option.und,
+                "bid": bid,
+                "ask": ask
+            }
+        ]))
 
     def on_reply(self, message: {}):
         try:
@@ -87,9 +107,9 @@ class QuoteGenerator(object):
             option.value_vector.append(fair_value)
             option.value_vector.sort(key=lambda v: v.spot)
 
-            QuoteGenerator.quote(option, value)
+            self.quote(option, value)
             self.in_progress[option.und] = False
 
         except Exception as ex:
-            pass
+            logging.error("Error in parsing reply")
         return

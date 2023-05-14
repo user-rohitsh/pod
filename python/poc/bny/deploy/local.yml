@@ -8,6 +8,16 @@ services:
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+    volumes:
+      - type: bind
+        source: ./local_data/zoo/secrets
+        target: /etc/zookeeper/secrets
+      - type: bind
+        source: ./local_data/zoo/data
+        target: /var/lib/zookeeper/data
+      - type: bind
+        source: ./local_data/zoo/log
+        target: /var/lib/zookeeper/log
 
   broker:
     image: confluentinc/cp-kafka:7.3.2
@@ -18,6 +28,13 @@ services:
       - "9092:9092"
     depends_on:
       - zookeeper
+    volumes:
+      - type: bind
+        source: ./local_data/kafka_asyncio/secrets
+        target: /etc/kafka_asyncio/secrets
+      - type: bind
+        source: ./local_data/kafka_asyncio/data
+        target: /var/lib/kafka_asyncio/data
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
@@ -28,7 +45,7 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
 
   kafka-ui:
-    container_name: kafka-ui
+    container_name: kafka_asyncio-ui
     image: provectuslabs/kafka-ui:latest
     ports:
       - 8080:8080
@@ -36,3 +53,15 @@ services:
       DYNAMIC_CONFIG_ENABLED: true
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: broker:29092
+
+  mongodb:
+    image: mongodb/mongodb-community-server:6.0-ubi8
+#    environment:
+#      - MONGO_INITDB_ROOT_USERNAME=user
+#      - MONGO_INITDB_ROOT_PASSWORD=pass
+    ports:
+      - 27017:27017
+    volumes:
+      - type: bind
+        source: ./local_data/mongodb/
+        target: /data/db

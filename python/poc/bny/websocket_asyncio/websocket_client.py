@@ -2,23 +2,26 @@ import asyncio
 import json
 import logging
 import sys
+from typing import Callable
 
 import websockets
 
-from quote_generator.websocket_client.abstract_client import AbstractWebSocketClient, Callback
+Callback = Callable[[dict], None]
 
 
-class WebSocketClient(AbstractWebSocketClient):
-    def __init__(self):
+class WebSocketClient():
+    def __init__(self, config: {}):
         self.sock: websockets.WebSocketClientProtocol = None
         self.callback = None
         self.sock: websockets.WebSocketClientProtocol
         self.__loop = asyncio.get_running_loop()
+        self.__url = config["QUANT"]["quant.url"]
+        pass
 
-    async def initialize(self, url: str, callback: Callback):
+    async def initialize(self, callback: Callback):
         self.callback = callback
         try:
-            self.sock = await websockets.connect(url)
+            self.sock = await websockets.connect(self.__url)
             if self.sock is None:
                 logging.error("Cannot create connection to quant service - Shutting Down")
                 sys.exit(-1)

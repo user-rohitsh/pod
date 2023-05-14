@@ -1,10 +1,8 @@
 import asyncio
 import json
 import logging
-from abc import ABC
-from typing import Callable
 
-from quote_generator.websocket_client.abstract_client import AbstractWebSocketClient, Callback
+from websocket_asyncio.websocket_client import Callback
 
 
 def process_request(data: str) -> dict:
@@ -21,17 +19,17 @@ def process_request(data: str) -> dict:
         }
 
     except Exception as ex:
-        reply={}
+        reply = {}
 
     return reply
 
 
-class MockWebSocketClient(AbstractWebSocketClient):
-    def __init__(self):
+class MockWebSocketClient():
+    def __init__(self, config: {}):
         self.__loop = asyncio.get_running_loop()
         self.callback = None
 
-    async def initialize(self, url: str, callback: Callback):
+    async def initialize(self, callback: Callback):
         self.callback = callback
 
     async def send(self, data: str):

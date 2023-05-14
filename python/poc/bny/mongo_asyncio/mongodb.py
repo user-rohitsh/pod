@@ -8,7 +8,6 @@ class Mongo(object):
     def __init__(self, config: {}):
         url = config["MONGODB"]["mongodb.url"]
         self.mongo_client: AsyncIOMotorClient = motor.motor_asyncio.AsyncIOMotorClient(url)
-        self.mongo_client
 
     def get_collection(self, db_name: str, collection: str) -> AsyncIOMotorCollection:
         db = self.mongo_client[db_name]

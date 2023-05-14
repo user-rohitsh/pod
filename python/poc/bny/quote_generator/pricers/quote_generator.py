@@ -14,7 +14,6 @@ class QuoteGenerator(object):
         self.underlying_to_options: dict[str, list[str]] = {}
         self.in_progress: dict[str:bool] = {}
         self.__config = config
-        url = self.__config["MONGODB"]["mongodb.url"]
         self.mongo = mongo
         self.__web_socket_client = sock_client
         self.__tolerance = float(self.__config["QUANT"]["quant.tolerance"])
@@ -25,7 +24,7 @@ class QuoteGenerator(object):
             self.underlying_to_options.setdefault(option.und, []).append(option.id)
 
     async def initialize(self):
-        await  self.__web_socket_client.initialize(self.on_reply)
+        await self.__web_socket_client.initialize(self.on_reply)
         db_name = self.__config["MONGODB"]["mongodb.dbname"]
         collection = self.__config["MONGODB"]["mongodb.collection"]
         mongo_documents = await self.mongo.get_all_documents(db_name, collection)
@@ -34,8 +33,8 @@ class QuoteGenerator(object):
 
     async def quote_generate(self, messages: list[dict]):
 
-        messages.sort(key=lambda m: (m.get("und"), m.get("timestamp")))
-        collated = [list(g).pop() for k, g in groupby(messages, lambda m: m.get("und"))]
+        messages.sort(key=lambda msg: (msg.get("und"), msg.get("timestamp")))
+        collated = [list(g).pop() for k, g in groupby(messages, lambda msg: msg.get("und"))]
 
         for m in collated:
             spot = float(m["spot"])
@@ -110,6 +109,6 @@ class QuoteGenerator(object):
             self.quote(option, value)
             self.in_progress[option.und] = False
 
-        except Exception as ex:
+        except Exception:
             logging.error("Error in parsing reply")
         return

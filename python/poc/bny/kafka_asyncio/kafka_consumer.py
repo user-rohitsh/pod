@@ -25,9 +25,15 @@ class KafkaConsumer(object):
 
     async def start(self):
         await self.__consumer.start()
+        await asyncio.sleep(5)
 
     async def stop(self):
         await self.__consumer.stop()
+
+    def print_partitions(self):
+        partitions: set[TopicPartition] = self.__consumer.assignment()
+        for tp in partitions:
+            logging.info("Assigned Partition id {}".format(tp.partition))
 
     def seek(self, offset=0):
         partitions: set[TopicPartition] = self.__consumer.assignment()

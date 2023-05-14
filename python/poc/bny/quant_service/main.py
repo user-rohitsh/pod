@@ -49,5 +49,6 @@ async def process_request(data: str) -> str:
 
     return reply_json
 
+
 if __name__ == '__main__':
     uvicorn.run(app)

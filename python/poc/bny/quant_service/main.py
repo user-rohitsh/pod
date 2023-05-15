@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 
 import uvicorn
 from fastapi import FastAPI, WebSocket
@@ -17,23 +18,24 @@ class PayLoad(object):
 @app.websocket("/quant")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
-    print("accepted connection")
+    logging.info("accepted connection")
     while True:
         data = await websocket.receive_text()
-        print("accepted request")
         asyncio.create_task(process_request(data, websocket))
-        print("completed request")
 
 
 async def process_request(data: str, websocket):
     option_id = ""
+    spot = ""
     try:
         payload_dict = json.loads(data)
         option_id = payload_dict["option_id"]
         spot = payload_dict["spot"]
 
+        logging.info("Accepted request for option_id = {} spot = {}".format(option_id, spot))
+
         # processing requests - calculate price
-        await  asyncio.sleep(1)
+        await  asyncio.sleep(5)
 
         reply = {
             "option_id": option_id,
@@ -46,8 +48,13 @@ async def process_request(data: str, websocket):
         reply_json = "{}"
 
     await websocket.send_text(reply_json)
-    print("completed request {}", option_id)
+    logging.info("Completed request for option_id = {} spot = {}".format(option_id, spot))
 
 
 if __name__ == '__main__':
+    logging.basicConfig(filename="{}.log".format("quant_service"),
+                        filemode='w',
+                        format='%(asctime)s,%(thread)d %(message)s',
+                        datefmt='%H:%M:%S',
+                        level=logging.INFO)
     uvicorn.run(app)

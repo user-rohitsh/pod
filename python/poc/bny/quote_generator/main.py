@@ -1,9 +1,9 @@
 import asyncio
 import logging
-import os
+from multiprocessing import Process
 
 from dependency_injector import containers, providers
-from dependency_injector.wiring import Provide
+from dependency_injector.wiring import Provide, inject
 
 from kafka_asyncio.kafka_consumer import KafkaConsumer
 from mongo_asyncio.mongodb import Mongo
@@ -36,6 +36,7 @@ async def process_message(generator: QuoteGenerator, messages: list[dict]):
     await generator.quote_generate(messages)
 
 
+@inject
 async def poc_main(
         kafka_consumer: KafkaConsumer = Provide[Container.kafka_consumer],
         mongo: Mongo = Provide[Container.mongo_client],
@@ -43,11 +44,11 @@ async def poc_main(
         config=Provide[Container.config]):
     try:
         await kafka_consumer.start()
-        kafka_consumer.print_partitions()
+        #kafka_consumer.print_partitions()
         generator = QuoteGenerator(sock_client, mongo, config=config)
         await generator.initialize()
 
-        kafka_consumer.seek(0)  # for poc - resetting offset to 0
+        #kafka_consumer.seek(0)  # for poc - resetting offset to 0
         await kafka_consumer.consume(lambda message: process_message(generator, message))
     except Exception as ex:
         await kafka_consumer.stop()
@@ -55,9 +56,8 @@ async def poc_main(
         pass
 
 
-if __name__ == '__main__':
-    pid = os.getpid()
-    logging.basicConfig(filename="poc_logs.log.{}".format(pid),
+def start(instance_name: str):
+    logging.basicConfig(filename="{}.log".format(instance_name),
                         filemode='w',
                         format='%(asctime)s,%(thread)d %(message)s',
                         datefmt='%H:%M:%S',
@@ -68,3 +68,14 @@ if __name__ == '__main__':
     container = Container()
     container.wire(modules=[__name__])
     asyncio.run(poc_main())
+
+
+if __name__ == '__main__':
+    instance_1 = Process(target=start, args=('instance.1',))
+    instance_2 = Process(target=start, args=('instance.2',))
+
+    instance_1.start()
+    instance_2.start()
+
+    instance_1.join()
+    instance_2.join()

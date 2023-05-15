@@ -25,4 +25,4 @@ class Mongo(object):
     async def insert_all(self, db_name: str, collection: str, documents: list[dict]):
         collection = self.get_collection(db_name, collection)
         await collection.insert_many(documents)
-        logging.info(" Added documents to mongodb")
+        logging.info("Added documents to mongodb")

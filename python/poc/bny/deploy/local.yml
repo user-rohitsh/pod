@@ -30,11 +30,11 @@ services:
       - zookeeper
     volumes:
       - type: bind
-        source: ./local_data/kafka_asyncio/secrets
-        target: /etc/kafka_asyncio/secrets
+        source: ./local_data/kafka/secrets
+        target: /etc/kafka/secrets
       - type: bind
-        source: ./local_data/kafka_asyncio/data
-        target: /var/lib/kafka_asyncio/data
+        source: ./local_data/kafka/data
+        target: /var/lib/kafka/data
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'

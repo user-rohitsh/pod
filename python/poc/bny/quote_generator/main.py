@@ -43,7 +43,7 @@ async def poc_main(container):
 
     async with container.kafka_consumer() as kafka_consumer, \
             QuoteGenerator(sock_client, mongo, config=config) as generator:
-        await kafka_consumer.consume(lambda message: process_message(generator, message))
+        await kafka_consumer.consume(lambda messages: process_message(generator, messages))
 
 
 def start(instance_name: str):

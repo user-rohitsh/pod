@@ -60,7 +60,9 @@ class TestQuoteGenerator(IsolatedAsyncioTestCase):
             await generator.call_quant_service_to_price(option, 10.2)
 
         for option in msft_options:
-            await generator.quote_generate("MSFT", 10.04, 0.1)
+            await generator.quote_generate([
+                {"und": "MSFT", "spot": 10.04}
+            ])
             self.assertListEqual(
                 option.value_vector, [
                     Option.FairValue(option, 10.0, 10.0, 1.0),

@@ -23,6 +23,16 @@ class QuoteGenerator(object):
             self.all_options[option.id] = option
             self.underlying_to_options.setdefault(option.und, []).append(option.id)
 
+    async def __aenter__(self):
+        await self.initialize()
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        if exc_type:
+            logging.error(exc)
+        await self.__web_socket_client.close()
+        return self
+
     async def initialize(self):
         await self.__web_socket_client.initialize(self.on_reply)
         db_name = self.__config["MONGODB"]["mongodb.dbname"]

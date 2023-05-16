@@ -1,9 +1,9 @@
 import asyncio
 import logging
+import sys
 from multiprocessing import Process
 
 from dependency_injector import containers, providers
-from dependency_injector.wiring import Provide, inject
 
 from kafka_asyncio.kafka_consumer import KafkaConsumer
 from mongo_asyncio.mongodb import Mongo
@@ -36,24 +36,14 @@ async def process_message(generator: QuoteGenerator, messages: list[dict]):
     await generator.quote_generate(messages)
 
 
-@inject
-async def poc_main(
-        kafka_consumer: KafkaConsumer = Provide[Container.kafka_consumer],
-        mongo: Mongo = Provide[Container.mongo_client],
-        sock_client: WebSocketClient = Provide[Container.web_sock_client],
-        config=Provide[Container.config]):
-    try:
-        await kafka_consumer.start()
-        #kafka_consumer.print_partitions()
-        generator = QuoteGenerator(sock_client, mongo, config=config)
-        await generator.initialize()
+async def poc_main(container):
+    mongo: Mongo = container.mongo_client()
+    sock_client: WebSocketClient = container.web_sock_client()
+    config = container.config()
 
-        #kafka_consumer.seek(0)  # for poc - resetting offset to 0
-        await kafka_consumer.consume(lambda message: process_message(generator, message))
-    except Exception as ex:
-        await kafka_consumer.stop()
-        logging.error(ex)
-        pass
+    async with container.kafka_consumer() as kafka_consumer, \
+            QuoteGenerator(sock_client, mongo, config=config) as generator:
+        await kafka_consumer.consume(lambda messages: process_message(generator, messages))
 
 
 def start(instance_name: str):
@@ -66,8 +56,9 @@ def start(instance_name: str):
     logging.getLogger("consumer").setLevel(logging.INFO)
 
     container = Container()
-    container.wire(modules=[__name__])
-    asyncio.run(poc_main())
+    asyncio.run(poc_main(container))
+    logging.info("Exiting {} due to error".format(instance_name))
+    sys.exit(-1)
 
 
 if __name__ == '__main__':

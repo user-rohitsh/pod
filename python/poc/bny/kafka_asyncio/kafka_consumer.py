@@ -20,14 +20,23 @@ class KafkaConsumer(object):
             auto_offset_reset=config["KAFKA_CONSUMER"]["auto.offset.reset"]
         )
 
-    def loop(self):
-        return self.__consumer.__getattribute__("loop")
+    async def __aenter__(self):
+        await self.start()
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        if exc_type:
+            logging.error(exc)
+        await self.stop()
+        return self
 
     async def start(self):
-        await self.__consumer.start()
+        if self.__consumer:
+            await self.__consumer.start()
 
     async def stop(self):
-        await self.__consumer.stop()
+        if self.__consumer:
+            await self.__consumer.stop()
 
     def print_partitions(self):
         partitions: set[TopicPartition] = self.__consumer.assignment()

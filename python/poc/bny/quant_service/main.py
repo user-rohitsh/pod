@@ -4,6 +4,7 @@ import logging
 
 import uvicorn
 from fastapi import FastAPI, WebSocket
+from websockets.exceptions import ConnectionClosedError
 
 app = FastAPI()
 
@@ -20,8 +21,12 @@ async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     logging.info("accepted connection")
     while True:
-        data = await websocket.receive_text()
-        asyncio.create_task(process_request(data, websocket))
+        try:
+            data = await websocket.receive_text()
+            asyncio.create_task(process_request(data, websocket))
+        except (ConnectionClosedError, ConnectionAbortedError, ConnectionResetError) as ex:
+            logging.error("Connection closed")
+            break
 
 
 async def process_request(data: str, websocket):

@@ -12,6 +12,7 @@ Callback = Callable[[dict], None]
 
 class WebSocketClient():
     def __init__(self, config: {}):
+        self.__recv_task = None
         self.__is_active = False
         self.sock: websockets.WebSocketClientProtocol = None
         self.callback = None
@@ -23,7 +24,13 @@ class WebSocketClient():
         self.callback = callback
         await self.connect()
         if self.__is_active:
-            asyncio.create_task(self.recv())
+            self.__recv_task = asyncio.create_task(self.recv())
+
+    async def close(self):
+        if self.__recv_task:
+            self.__recv_task.cancel()
+        if self.__is_active:
+            await self.sock.close()
 
     async def send(self, data: str):
 
@@ -66,5 +73,5 @@ class WebSocketClient():
                 logging.info("connected")
                 return
             except (ConnectionRefusedError, ConnectionError, ConnectionAbortedError) as ex:
-                logging.error("Cannot create connection to quant service - retrying aster 1 sec {}".format(ex))
+                logging.error("Cannot create connection to quant service - retrying after 1 sec {}".format(ex))
             await asyncio.sleep(1)
